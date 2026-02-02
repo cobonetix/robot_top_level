@@ -1,0 +1,8 @@
+# Request: GPIO command with variable name and value
+string command      # Command key: 'o','p','a','c','s','m','v','d'
+int32 value         # Value to set (0 or 1 for most, 0-180 for servo)
+---
+# Response: confirmation and current states
+bool success
+string message
+string current_states

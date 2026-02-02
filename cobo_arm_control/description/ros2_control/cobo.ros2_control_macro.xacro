@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+
+   <xacro:macro name="cobo_arm_control" params="prefix">
+        <joint name="${prefix}T_J_S0_T_TO_U_SL">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">0.9</param>
+        </command_interface>
+ 
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <joint name="${prefix}A_J_S1_U_SL_TO_A_L0">
+        <command_interface name="position">
+          <param name="min">${-pi/2}</param>
+          <param name="max">${ pi/2}</param>
+        </command_interface>
+ 
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <joint name="${prefix}A_J_S1_U_A_L0_TO_L1">
+        <command_interface name="position">
+          <param name="min">${-pi/2}</param>
+          <param name="max">${pi/2}</param>
+        </command_interface>
+ 
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="position"/>
+         <state_interface name="velocity"/>
+     </joint>
+
+      <joint name="${prefix}A_J_S1_U_A_L1_TO_L2_B1">
+        <command_interface name="position">
+          <param name="min">${-pi/2}</param>
+          <param name="max">${pi/2}</param>
+         <state_interface name="velocity"/>
+       </command_interface>
+ 
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+</xacro:macro>
+
+   
+  <xacro:macro name="cobo_ros2_control" params="name prefix">
+
+    <ros2_control name="${prefix}${name}" type="system">
+
+      <hardware>
+        <plugin>cobo_arm_control/RobotSystem</plugin>
+           <param name="right_arm_port">/dev/ttyUSB0</param> 
+           <param name="tower_port">/dev/ttyACM1</param> 
+           <param name="left_arm_port">/dev/ttyUSB1</param> 
+           <param name="baud_rate">38400</param> 
+           <param name="initial_rotation">1.56</param> 
+           <param name="initial_z">0.8</param> 
+           <param name="fake_mode">0</param> 
+      </hardware>
+      
+      <xacro:cobo_arm_control   prefix="left_"/>
+      <xacro:cobo_arm_control   prefix="right_"/>
+
+
+      <gpio name="tower">
+        <command_interface name="t_c_pump_on"/>
+        <command_interface name="t_c_auto_mode"/>
+        <command_interface name="t_c_valve_open"/>
+        <command_interface name="t_c_calibrate"/>
+
+        <state_interface name="t_s_moving"/>
+        <state_interface name="t_s_error"/>
+        <state_interface name="t_s_pump_on"/>
+        <state_interface name="t_s_auto_mode"/>
+        <state_interface name="t_s_valve_open"/>
+        <state_interface name="t_s_pressure_level"/> 
+      </gpio>
+
+      <gpio name="right_arm">
+        <command_interface name="r_c_servo"/>
+        <command_interface name="r_c_vacuum_on"/>
+        <command_interface name="r_c_attach_mode"/>
+
+        <state_interface name="r_s_moving"/>
+        <state_interface name="r_s_error"/>
+        <state_interface name="r_s_servo"/>
+        <state_interface name="r_s_vacuum_on"/>
+        <state_interface name="r_s_attach_mode"/>
+        <state_interface name="r_s_attach_status"/>
+        <state_interface name="r_s_vacuum_level"/>
+          
+
+      </gpio>
+
+      <gpio name="left_arm">
+        <command_interface name="l_c_door_position"/>
+        
+        <state_interface name="l_s_moving"/>
+        <state_interface name="l_s_error"/>
+        <state_interface name="l_s_door_position"/>
+      </gpio>
+    </ros2_control>
+  </xacro:macro>
+
+
+</robot>

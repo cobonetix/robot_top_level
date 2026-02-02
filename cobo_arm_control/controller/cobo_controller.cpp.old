@@ -1,0 +1,465 @@
+// Copyright 2023 ros2_control Development Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "cobo_arm_control/cobo_controller.hpp"
+
+#include <stddef.h>
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
+//#include <math>
+
+#include "rclcpp/qos.hpp"
+#include "rclcpp/time.hpp"
+#include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
+#include "rclcpp_lifecycle/state.hpp"
+
+using config_type = controller_interface::interface_configuration_type;
+
+// extern int inverse_kinematics(int rightArm, float L1, float L2, double x, double y, double rot,  double &joint_2, double &joint_3, double &joint_4);
+
+float L1_SIZE = 0.23f;  // length of upper arm
+float L2_SIZE = 0.23f;  // length of lower arm
+
+
+namespace cobo_arm_control
+{
+RobotController::RobotController() : controller_interface::ControllerInterface() {}
+
+
+int degrees(double radians)
+{
+  return static_cast<int>(radians * 180.0 / M_PI);
+}
+
+double radians(int degrees)
+{
+  return static_cast<double>(degrees) * M_PI / 180.0;
+}
+
+double adjustRadians(double radians)
+{
+  if (radians >= 1.57)
+     return radians + 1.57;
+  return 1.57 + radians;
+
+}
+
+
+int inverse_kinematics(int rightArm, float L1, float L2, double x, double y, double rot,  double &joint_1, double &joint_2, double &joint_3)
+{
+   int quad;
+   int useElbowUp = 1;  // by default use the elbow up solution
+
+   double p,d,b,a2down,a2up,gamma,theta1u,theta1d,theta2u,theta2d;
+   double x1u, y1u, x1d, y1d, nxu, nyu, nxd, nyd, dd, ud;
+   double slopeu, sloped, angleu, angled, rotadju, rotadjd;
+
+   std::cout << "ik input (" << x << "," << y << "," << rot << ")" << std::endl;
+
+    p= sqrt(x*x + y*y);
+    d = (L1*L1 + L2*L2 - p*p)/(2 * L1*L2);
+    std::cout << "  p = " << p << "  d sq = " << d*d << std::endl;    
+    
+    if (d*d > 1)
+    {
+      std::cout << "no solution1" << std::endl;
+      return -1;
+    }
+   
+    // see what quad we are in
+
+    if (x>= 0 and y >= 0)
+        quad = 1;
+        
+    if (x< 0 and y >= 0)
+        quad = 2;
+    
+    if (x< 0 and y < 0)
+        quad = 3;
+
+    if (x>= 0 and y < 0)
+        quad = 4;
+    
+    
+    
+    a2down = atan(sqrt(1-d*d)/d);
+    a2up =   atan(-sqrt(1-d*d)/d);
+ 
+    std::cout <<"  quad " << quad << " a2 u/d " << degrees(a2up) << ":" << degrees(a2down)  << std::endl;
+
+    gamma = acos((L1*L1 -L2*L2 + p*p)/(2*p*L1) );
+    
+    switch( quad)
+    {
+      case 1:
+      case 4:
+        theta2u = -a2up;
+        theta2d =  a2up ; //adown
+        //std::cout <<"  theta2 u/d " << degrees(theta2u)<< " "  << degrees(theta2d) << std::endl;
+      
+         b = atan(y/x);
+
+        std::cout <<" q1/4: b gamma " << degrees(b)<< ":"  << degrees(gamma) << std::endl;
+     
+        theta1u = b + gamma ;
+        theta1d = b - gamma;
+        break;
+
+      case 2:
+        theta2u =  -a2up ;
+        theta2d =  fabs(a2down);
+       
+        b = asin(fabs(x)/p);
+        std::cout <<" q2: b gamma" << degrees(b)<< " "  << degrees(gamma) << std::endl;
+        theta1u = 1.57 + b + gamma;
+        theta1d = 1.57 + b - gamma ;
+        break;
+
+      case 3:
+        theta2u =  -a2up ;
+        theta2d =  fabs(a2down);
+        
+        b = asin(fabs(x)/p);
+        std::cout <<" q3: b gamma " << degrees(b)<< " "  << degrees(gamma) << std::endl;
+        theta1u = 3.14 +1.57 - b + gamma;
+        theta1d = 3.14 +1.57 - b - gamma ;
+        break;
+    }      
+        
+  std::cout <<  "  elbow up: (" << degrees(theta1u ) << ":"  << degrees(theta2u) << ") elbow down: (" <<  degrees(theta1d) << ":"  << degrees(theta2d) << ")" << std::endl;
+
+  // we  have calculated the first two joint angles for the elbow up and down options. 
+  // now calcuate how close we came to the desired x and y
+  
+  //  calcuate the first joint position for both elbow up and down
+
+  x1u = L1 * cos(theta1u);
+  y1u = L1 * sin(theta1u);
+  x1d = L1 * cos(theta1d);
+  y1d = L1 * sin(theta1d);
+
+  std::cout << " up x,y (" << x1u << ":" << y1u << ") down x,y (" << x1d << ":" << y1d <<")"<< std::endl;
+
+  // now the second joint position
+  nxu = x1u + L2 * cos (theta1u + theta2u);
+  nyu = y1u + L2 * sin (theta1u + theta2u);
+  nxd = x1d + L2 * cos (theta1d + theta2d);
+  nyd = y1d + L2 * sin (theta1d + theta2d);
+
+  // display the error for each
+
+  std::cout <<"  up   position " << nxu  << ":" << nyu << std::endl;
+  std::cout <<"  error: (" << abs (x -nxu) << ":" << abs (y -nyu) <<"), (" << abs (x -nxd)  << ":" <<abs (y -nyd) <<")" << std::endl;
+
+    // calcuate the distances
+
+  dd = sqrt( (x1d-x) *(x1d-x) + (y1d-y)*(y1d-y));
+  ud = sqrt( (x1u-x) * (x1u-x) + (y1u-y)*(y1u-y));
+  
+  std::cout <<"  dist up " << ud << " dist down " <<dd  << std::endl;
+  
+  if (abs(ud - L2) > 0.5)
+  { 
+      std::cout <<"up fails" << std::endl;
+      useElbowUp = 0;
+  }
+
+  if (abs(dd - L2) > 0.5)
+  {
+    std::cout <<"down fails"<< std::endl;
+    if (useElbowUp ==0)
+    {
+      std::cout <<"no solution 2"<< std::endl;
+      return -2;
+    }
+  }
+  // now calcualte the third joint which is the ee rotation
+  
+  slopeu = (nyu - y1u)/(nxu - x1u);
+  sloped = (nyd - y1d)/(nxd - x1d);
+  
+  angleu = degrees(atan(slopeu));
+  angled = degrees(atan(sloped));
+      
+  rotadju = rot-angleu;
+  rotadjd = rot-angled;
+  
+  // the third joint is limited to 0-180 degrees.
+  
+  if (rotadju < 0 or rotadju > 180)
+  {
+      std::cout <<"upper arm rotation limit exceeded" << std::endl;
+  }  
+  if (rotadjd < 0 or rotadjd > 180)
+  {
+      std::cout <<"lower arm rotation limit exceeded" << std::endl;
+  }
+  std::cout << rot <<  ": (" << angleu << ":" << rotadju << ") ( " << angled <<":" << rotadjd<< ")" << std::endl;
+  
+  if (useElbowUp)
+  {
+     std::cout <<"Use Elbow Up" << std::endl;
+    joint_1 =  theta1u;
+    joint_2 = adjustRadians(theta2u );
+    joint_3 = radians(rotadju);
+  }
+  else
+  {
+     std::cout <<"Use Elbow Down" << std::endl;
+    joint_1 = theta1d;
+    joint_2 = adjustRadians(theta2d) ;
+    joint_3 = radians(rotadjd);
+  }
+
+  return 0;
+}
+controller_interface::CallbackReturn RobotController::on_init()
+{
+  // should have error handling
+  joint_names_ = auto_declare<std::vector<std::string>>("joints", joint_names_);
+  command_interface_types_ = auto_declare<std::vector<std::string>>("command_interfaces", command_interface_types_);
+  state_interface_types_ =   auto_declare<std::vector<std::string>>("state_interfaces", state_interface_types_);
+   std::cout << "controller on_init  "  << std::endl; 
+
+  return CallbackReturn::SUCCESS;
+}
+
+controller_interface::InterfaceConfiguration RobotController::command_interface_configuration() const
+{
+  std::cout << "controller cmd config1  "  << std::endl; 
+ controller_interface::InterfaceConfiguration conf = {config_type::INDIVIDUAL, {}};
+
+  conf.names.reserve(joint_names_.size() * command_interface_types_.size());
+  for (const auto & joint_name : joint_names_)
+  {
+    for (const auto & interface_type : command_interface_types_)
+    {
+      conf.names.push_back(joint_name + "/" + interface_type);
+    }
+  }
+   std::cout << "controller cmd config1 X "  << std::endl; 
+
+
+
+  return conf;
+}
+
+controller_interface::InterfaceConfiguration RobotController::state_interface_configuration() const
+{
+  std::cout << "controller state config1  "  << std::endl; 
+
+  controller_interface::InterfaceConfiguration conf = {config_type::INDIVIDUAL, {}};
+
+  conf.names.reserve(joint_names_.size() * state_interface_types_.size());
+  for (const auto & joint_name : joint_names_)
+  {
+    for (const auto & interface_type : state_interface_types_)
+    {
+      conf.names.push_back(joint_name + "/" + interface_type);
+    }
+  }
+  
+
+  std::cout << "controller state config1 X "  << std::endl; 
+
+  return conf;
+}
+
+controller_interface::CallbackReturn RobotController::on_configure(const rclcpp_lifecycle::State &)
+{
+  auto left_pose_callback =
+    [this](const std::shared_ptr<geometry_msgs::msg::Pose> pose_msg) -> void
+  {
+    std::cout << "left pose_call back" << std::endl;
+    left_pose_msg_external_point_ptr_.writeFromNonRT(pose_msg);
+    left_new_pose_msg_ = true;
+  };
+
+auto right_pose_callback =
+    [this](const std::shared_ptr<geometry_msgs::msg::Pose> pose_msg) -> void
+  {
+    std::cout << "right pose call back" << std::endl;
+    right_pose_msg_external_point_ptr_.writeFromNonRT(pose_msg);
+    right_new_pose_msg_ = true;
+  };
+ 
+ auto dual_joint_callback = [this](const std::shared_ptr<std_msgs::msg::Float32MultiArray> joint_msg) -> void
+  {
+    std::cout << "dual joint call back" << std::endl;
+    
+    for (int i = 0; i < NUMBER_OF_JOINTS*2; i ++)
+    {
+      std::cout << joint_msg->data[i] <<std::endl;
+      jointAngles[i] = joint_msg->data[i];
+    }
+       
+    for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
+    {
+       joint_position_command_interface_[i].get().set_value(jointAngles[i]);
+    }
+  };
+  
+  auto left_joint_callback = [this](const std::shared_ptr<std_msgs::msg::Float32MultiArray> joint_msg) -> void
+  {
+    std::cout << "left joint call back" << std::endl;
+    
+    for (int i = 0; i < NUMBER_OF_JOINTS; i ++)
+    {
+      std::cout << joint_msg->data[i] <<std::endl;
+      jointAngles[i+LEFT_JOINT_OFFSET] = joint_msg->data[i];
+    }
+       
+    for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
+    {
+       joint_position_command_interface_[i].get().set_value(jointAngles[i]);
+    }
+  };
+
+  auto right_joint_callback = [this](const std::shared_ptr<std_msgs::msg::Float32MultiArray> joint_msg) -> void
+  {
+      std::cout << "right joint call back" << std::endl;
+    
+    for (int i = 0; i < NUMBER_OF_JOINTS; i ++)
+    {
+      std::cout << joint_msg->data[i] <<std::endl;
+      jointAngles[i+RIGHT_JOINT_OFFSET] = joint_msg->data[i];
+    }
+       
+    for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
+    {
+       joint_position_command_interface_[i].get().set_value(jointAngles[i]);
+    }
+ };
+ 
+
+  left_joint_command_pose_subscriber_ =
+    get_node()->create_subscription<geometry_msgs::msg::Pose>("/cobo_left_arm_command/pose", rclcpp::SystemDefaultsQoS(), left_pose_callback);
+
+  right_joint_command_pose_subscriber_ =
+    get_node()->create_subscription<geometry_msgs::msg::Pose>("/cobo_right_arm_command/pose", rclcpp::SystemDefaultsQoS(), right_pose_callback);
+   
+  left_joint_command_joint_subscriber_ =
+    get_node()->create_subscription<std_msgs::msg::Float32MultiArray>("/cobo_left_arm_command/joint", rclcpp::SystemDefaultsQoS(), left_joint_callback);
+
+  right_joint_command_joint_subscriber_ =
+    get_node()->create_subscription<std_msgs::msg::Float32MultiArray>("/cobo_right_arm_command/joint", rclcpp::SystemDefaultsQoS(), right_joint_callback);
+   
+  dual_joint_command_joint_subscriber_ =
+    get_node()->create_subscription<std_msgs::msg::Float32MultiArray>("/cobo_dual_arm_command/joint", rclcpp::SystemDefaultsQoS(), dual_joint_callback);
+   
+ return CallbackReturn::SUCCESS;
+}
+
+controller_interface::CallbackReturn RobotController::on_activate(const rclcpp_lifecycle::State &)
+{
+    std::cout << "controller on act  "  << std::endl; 
+// clear out vectors in case of restart
+  joint_position_command_interface_.clear();
+  joint_position_state_interface_.clear();
+  joint_velocity_state_interface_.clear();
+
+  // assign command interfaces
+  for (auto & interface : command_interfaces_)
+  {
+    command_interface_map_[interface.get_interface_name()]->push_back(interface);
+    std::cout << "controller cmd interfaces   " << interface.get_interface_name()  <<  " "  << std::endl; 
+  }
+
+  // assign state interfaces
+  for (auto & interface : state_interfaces_)
+  {
+    state_interface_map_[interface.get_interface_name()]->push_back(interface);
+    std::cout << "controller state interfaces   " << interface.get_interface_name()  <<  " "  << std::endl; 
+  }
+
+  return CallbackReturn::SUCCESS;
+}
+
+
+
+controller_interface::return_type RobotController::update(
+  const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
+{
+
+int rightArm = 1;
+  //std::cout << "controller update 1   " << globalcount << std::endl; 
+
+  if (left_new_pose_msg_ || right_new_pose_msg_)
+  {
+    std::cout << "controller update 2   "  << std::endl; 
+    if (left_new_pose_msg_)
+    {
+      pose_msg_ = *left_pose_msg_external_point_ptr_.readFromRT();
+      left_new_pose_msg_ = false;
+      rightArm = 0;
+    }
+    else
+    {
+      pose_msg_ = *right_pose_msg_external_point_ptr_.readFromRT();
+      right_new_pose_msg_ = false;
+    } 
+    start_time_ = time;
+    double j_value[5];
+
+    std::cout << "controller update 3   "  << std::endl; 
+    if (pose_msg_ != nullptr)
+    {
+      // calc IK
+      std::cout << "pose_lin " <<pose_msg_->position.x << " " << pose_msg_->position.y << " " << pose_msg_->position.z << std::endl;
+      std::cout << "pose ang " << pose_msg_->orientation.x << " " << pose_msg_->orientation.y << " " << pose_msg_->orientation.z << std::endl;
+
+      inverse_kinematics(rightArm, L1_SIZE, L2_SIZE, (double)pose_msg_->position.x, (double)pose_msg_->position.y, (double)pose_msg_->orientation.z,  j_value[1], j_value[2], j_value[3]);
+  
+      // load the values for the hardware, joint 0 is the z and so it just gets loaded
+
+      jointAngles[0+(rightArm ? RIGHT_JOINT_OFFSET : 0)] = pose_msg_->position.z ;
+      
+      for (int i = 1; i < NUMBER_OF_JOINTS; i ++)
+      {
+        std::cout << j_value[i] <<std::endl;
+        jointAngles[i+(rightArm ? RIGHT_JOINT_OFFSET : 0)] = j_value[i];
+      }
+      
+      // pass the updated joints for both arms
+
+      for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
+      {
+       joint_position_command_interface_[i].get().set_value(jointAngles[i]);
+      }    
+    } 
+  }
+  
+
+  return controller_interface::return_type::OK;
+}
+
+controller_interface::CallbackReturn RobotController::on_deactivate(const rclcpp_lifecycle::State &)
+{
+  release_interfaces();
+
+  return CallbackReturn::SUCCESS;
+}
+
+
+
+
+
+}  // namespace cobo_arm_control
+
+#include "pluginlib/class_list_macros.hpp"
+
+PLUGINLIB_EXPORT_CLASS(
+  cobo_arm_control::RobotController, controller_interface::ControllerInterface)

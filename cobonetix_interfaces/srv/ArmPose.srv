@@ -1,0 +1,10 @@
+# Request: arm selection and pose coordinates
+string arm          # 'l' for left, 'r' for right
+float64 x           # x position
+float64 y           # y position
+float64 z           # z position
+float64 rotation    # rotation (roll)
+---
+# Response: confirmation
+bool success
+string message
