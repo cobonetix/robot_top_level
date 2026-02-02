@@ -1,0 +1,16 @@
+<library path="cobo_arm_control_lib">
+  <class name="cobo_arm_control/RobotSystem"
+         type="cobo_arm_control::RobotSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Robot hardware plugin for cobo arm.
+    </description>
+  </class>
+  <class name="cobo_arm_control/RobotController"
+         type="cobo_arm_control::RobotController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Robot controller plugin for cobo arm control.
+    </description>
+  </class>
+</library>

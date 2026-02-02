@@ -1,0 +1,88 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 5  # Hz
+
+  
+    cobo_controller:
+      type: cobo_arm_control/RobotController 
+   
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+
+    gpio_controller:
+      type: gpio_controllers/GpioCommandController
+
+
+gpio_controller:
+  ros__parameters:
+    gpios:
+      - tower
+      - left_arm
+      - right_arm
+    command_interfaces:
+      tower:
+        - interfaces:
+          - t_c_pump_on
+          - t_c_auto_mode
+          - t_c_valve_open
+          - t_c_calibrate
+
+      right_arm:
+        - interfaces:
+          - r_c_servo
+          - r_c_vacuum_on
+          - r_c_attach_mode
+
+      left_arm:  
+        - interfaces:
+          - l_c_door_position
+
+
+    state_interfaces:
+      tower:
+        - interfaces:
+          - t_s_moving
+          - t_s_error
+          - t_s_pump_on
+          - t_s_auto_mode
+          - t_s_valve_open
+          - t_s_pressure_level
+
+      right_arm:
+        - interfaces:
+          - r_s_moving
+          - r_s_error
+          - r_s_servo
+          - r_s_vacuum_on
+          - r_s_attach_mode
+          - r_s_vacuum_level
+          - r_s_attach_status
+
+      left_arm:  
+        - interfaces:
+          - l_s_moving
+          - l_s_error
+          - l_s_door_position
+
+  
+cobo_controller:
+  ros__parameters:
+
+    joints:
+      - right_T_J_S0_T_TO_U_SL
+      - right_A_J_S1_U_SL_TO_A_L0
+      - right_A_J_S1_U_A_L0_TO_L1
+      - right_A_J_S1_U_A_L1_TO_L2_B1
+      - left_T_J_S0_T_TO_U_SL
+      - left_A_J_S1_U_SL_TO_A_L0
+      - left_A_J_S1_U_A_L0_TO_L1
+      - left_A_J_S1_U_A_L1_TO_L2_B1
+
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+      - velocity
+

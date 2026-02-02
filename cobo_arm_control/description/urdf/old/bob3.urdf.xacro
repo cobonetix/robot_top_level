@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cobo">
+
+  
+   
+
+    <!-- Xacro imports -->
+    <xacro:include filename="bob3.macro.xacro" />
+
+
+    <!-- base and wheels -->
+    
+    <xacro:cobo-base>
+    
+    </xacro:cobo-base>
+    
+    
+    <!-- Left arm -->
+    <xacro:cobo_arm
+        name="cobo"
+        prefix="left_"
+        parent="base_link" >
+        <origin xyz = "${base_length/2} ${base_width/2} ${-z_offset}" rpy="0 0 ${-PI/2}"/>
+    </xacro:cobo_arm>
+
+
+    <!-- Right arm -->
+    <xacro:cobo_arm
+        name="cobo"
+        prefix="right_"
+        parent="base_link" >
+        <origin xyz = "${base_length/2} ${-base_width/2} ${-z_offset}" rpy="0 0 ${-PI/2}"/>
+    </xacro:cobo_arm>
+    
+
+</robot>

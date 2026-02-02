@@ -1,0 +1,8 @@
+# Request: which status field to check
+string group        # 'tower', 'right_arm', or 'left_arm'
+string field        # Field name (e.g., 'moving', 'error', 'pressure')
+---
+# Response: the status value
+bool success
+float64 value
+string message

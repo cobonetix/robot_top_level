@@ -1,0 +1,15 @@
+# Request: joint positions for both arms
+# Left arm joints
+float64 l_j1          # left arm joint 1 position
+float64 l_j2          # left arm joint 2 position
+float64 l_j3          # left arm joint 3 position
+float64 l_j4          # left arm joint 4 position
+# Right arm joints
+float64 r_j1          # right arm joint 1 position
+float64 r_j2          # right arm joint 2 position
+float64 r_j3          # right arm joint 3 position
+float64 r_j4          # right arm joint 4 position
+---
+# Response: confirmation
+bool success
+string message

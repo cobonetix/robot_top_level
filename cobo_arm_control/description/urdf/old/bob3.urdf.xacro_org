@@ -1,0 +1,528 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+
+ 
+   <material name="black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="blue">
+    <color rgba="0.0 0.0 0.8 1.0"/>
+  </material>
+
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+
+  <material name="grey">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+
+  <material name="orange">
+    <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+  </material>
+
+  <material name="brown">
+    <color rgba="${222/255} ${207/255} ${195/255} 1.0"/>
+  </material>
+
+  <material name="red">
+    <color rgba="0.8 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+
+
+  <xacro:property name="PI" value="3.1415926535897931"/>
+  <xacro:property name="base_mass" value="0.3" /> <!-- arbitrary value for base mass -->
+  <xacro:property name="base_width" value="0.51" />
+  <xacro:property name="base_length" value="0.43" />
+  <xacro:property name="base_height" value="0.51" />
+  <xacro:property name="wheel_mass" value="0.3" /> <!-- arbitrary value for wheel mass -->
+  <xacro:property name="wheel_color" value="blue" />  
+  <xacro:property name="wheel_len" value="0.020" />
+  <xacro:property name="wheel_radius" value="0.072" />
+  <xacro:property name="caster_wheel_mass" value="0.1" /> <!-- arbitrary value for caster wheel mass -->
+  <xacro:property name="caster_wheel_radius" value="${wheel_radius/2}" />
+  <xacro:property name="z_offset" value="-${base_height/2}" /> <!-- Space btw top of beam and the each joint -->
+
+
+  <xacro:property name="s0_tower_width"  value="0.015" />  
+  <xacro:property name="s0_tower_length" value="0.015" />  
+  <xacro:property name="s0_tower_height" value="1.0" />  
+  <xacro:property name="s0_tower_mass" value="1.0" />  
+  <xacro:property name="s0_tower_color" value="black" />  
+  
+  <xacro:property name="s1_tower_width"  value="0.015" />  
+  <xacro:property name="s1_tower_length" value="0.015" />  
+  <xacro:property name="s1_tower_height" value="1.2" />  
+  <xacro:property name="s1_tower_mass" value="1.0" />  
+  <xacro:property name="s1_tower_color" value="red" />  
+  
+  <xacro:property name="s0_slider_width"  value="0.01" />  
+  <xacro:property name="s0_slider_length" value="0.04" />  
+  <xacro:property name="s0_slider_height" value="0.131" />  
+  <xacro:property name="s0_slider_mass" value="1" />  
+  <xacro:property name="s0_slider_color" value="green" />  
+  
+  <xacro:property name="s1_slider_width" value="0.007" />  
+  <xacro:property name="s1_slider_length" value="0.060" />  
+  <xacro:property name="s1_slider_height" value="0.131" />  
+  <xacro:property name="s1_slider_mass" value="1" />  
+  <xacro:property name="s1_slider_color" value="orange" />  
+  
+  <xacro:property name="s1_slider_bracket_width" value="0.075" />  
+  <xacro:property name="s1_slider_bracket_length" value="0.060" />  
+  <xacro:property name="s1_slider_bracket_height" value="0.0035" />  
+  <xacro:property name="s1_slider_bracket_mass" value="1" />  
+  <xacro:property name="s1_slider_bracket_color" value="orange" />  
+
+
+  <xacro:property name="arm_l0_width" value="0.0475" />  
+  <xacro:property name="arm_l0_length" value="0.23" />  
+  <xacro:property name="arm_l0_height" value="0.025" />  
+  <xacro:property name="arm_l0_mass" value="1" />  
+  <xacro:property name="arm_l0_color" value="black" />  
+  
+  <xacro:property name="arm_l1_width" value="0.0475" />  
+  <xacro:property name="arm_l1_length" value="0.23" />  
+  <xacro:property name="arm_l1_height" value="0.025" />  
+  <xacro:property name="arm_l1_mass" value="1" />  
+  <xacro:property name="arm_l1_color" value="red" />  
+  
+  <xacro:property name="arm_l2_width" value="0.05" />  
+  <xacro:property name="arm_l2_length" value="0.005" />  
+  <xacro:property name="arm_l2_height" value="0.05" />  
+  <xacro:property name="arm_l2_mass" value="1" />  
+  <xacro:property name="arm_l2_color" value="white" />  
+  
+  <xacro:property name="arm_l2_bracket_width" value="0.06" />  
+  <xacro:property name="arm_l2_bracket_length" value="0.075" />  
+  <xacro:property name="arm_l2_bracket_height" value="0.0035" />  
+  <xacro:property name="arm_l2_bracket_mass" value="1" />  
+  <xacro:property name="arm_l2_bracket_color" value="orange" />  
+
+<xacro:macro name="cobo-base" params="" >
+
+   <link name="base_link">
+     <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+           <box size="${base_length} ${base_width} ${base_height}" />
+        </geometry>
+        <material name="blue"/>
+	</visual>
+    </link>
+  
+   <!-- left wheel Link -->
+    <link name="left_wheel">
+      <collision>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <geometry>
+          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <geometry>
+          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <mass value="${wheel_mass}"/>
+        <inertia
+          ixx="${wheel_mass / 12.0 * (3*wheel_radius + wheel_len*wheel_len)}" ixy="0.0" ixz="0.0"
+          iyy="${wheel_mass / 12.0 * wheel_radius*wheel_radius}" iyz="0.0"
+          izz="${wheel_mass / 12.0 * wheel_radius*wheel_radius}"/>
+        </inertial>
+      </link>
+
+  <joint name="${left_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="left_wheel"/>
+      <origin xyz="0 ${base_width/2} ${z_offset}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.2"/>
+    </joint>
+
+   <joint name="right_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="right_wheel"/>
+      <origin xyz="0 ${-base_width/2} ${z_offset}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.2"/>
+    </joint>
+
+   <!-- right wheel Link -->
+    <link name="right_wheel">
+      <collision>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <geometry>
+          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <geometry>
+          <cylinder length="${wheel_len}" radius="${wheel_radius}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+        <mass value="${wheel_mass}"/>
+        <inertia
+          ixx="${wheel_mass / 12.0 * (3*wheel_radius + wheel_len*wheel_len)}" ixy="0.0" ixz="0.0"
+          iyy="${wheel_mass / 12.0 * wheel_radius*wheel_radius}" iyz="0.0"
+          izz="${wheel_mass / 12.0 * wheel_radius*wheel_radius}"/>
+        </inertial>
+      </link>
+
+    <joint name="caster_frontal_wheel_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="caster_frontal_wheel"/>
+      <origin xyz="${base_width/2 - caster_wheel_radius} 0 ${z_offset}" rpy="0 0 0"/>
+    </joint>
+
+    <!-- caster frontal wheel Link -->
+    <link name="caster_frontal_wheel">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_wheel_radius}"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_wheel_radius}"/>
+        </geometry>
+        <material name="white"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${caster_wheel_mass}"/>
+        <inertia
+          ixx="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" ixy="0.0" ixz="0.0"
+          iyy="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" iyz="0.0"
+          izz="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}"/>
+        </inertial>
+      </link>
+
+    <joint name="caster_rear_wheel_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="caster_rear_wheel"/>
+      <origin xyz="${-base_width/2 + caster_wheel_radius} 0 ${z_offset}" rpy="0 0 0"/>
+    </joint>
+
+    <!-- caster rear wheel Link -->
+    <link name="caster_rear_wheel">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_wheel_radius}"/>
+        </geometry>
+      </collision>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_wheel_radius}"/>
+        </geometry>
+        <material name="white"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${caster_wheel_mass}"/>
+        <inertia
+          ixx="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" ixy="0.0" ixz="0.0"
+          iyy="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}" iyz="0.0"
+          izz="${caster_wheel_mass * 0.4 * (caster_wheel_radius * caster_wheel_radius)}"/>
+        </inertial>
+      </link>
+
+</xacro:macro>
+ 
+<xacro:macro name="cobo_arm" params="name prefix parent " >  
+
+        <!-- ros2_control -->
+        <xacro:include filename="$(find description)/ros_control/cobo.ros2_control_macro.xacro" />
+        <xacro:cobo_ros2_control name="${name}" prefix="${prefix}"/>
+
+      	  
+   <link name="${prefix}T_S0_T">
+    <visual>
+         <geometry>
+         <box size="${s0_tower_length} ${s0_tower_width} ${s0_tower_height} "/> 
+         </geometry>
+         <material name="${s0_tower_color}"/>
+     </visual>
+    <collision>
+         <geometry>
+         <box size="${s0_tower_length} ${s0_tower_width} ${s0_tower_height} "/> 
+         </geometry>
+      </collision>
+  </link>
+  
+  
+  <joint name="${prefix}T_J_S0_BASE_TO_T" type="fixed">
+      <parent link="base_link"/>
+      <child link="${prefix}T_S0_T"/>
+      <origin xyz="${base_length/2} ${base_width/2} ${-z_offset}" rpy="0 0 ${PI/2}"/>
+ </joint>
+  
+  <link name="${prefix}S0_SL">
+     <visual>
+         <geometry>
+           <box size="${s0_slider_length} ${s0_slider_width} ${s0_slider_height}" />
+         </geometry>
+        <material name="${s0_slider_color}"/>
+      </visual>
+     <collision>
+         <geometry>
+           <box size="${s0_slider_length} ${s0_slider_width} ${s0_slider_height}" />
+         </geometry>
+     </collision>
+  </link>
+
+ 
+  
+  <joint name="${prefix}T_J_S0_T_TO_SL" type="prismatic">
+      <parent link="${prefix}T_S0_T"/>
+      <child link ="${prefix}S0_SL"/>
+      <origin rpy="0 0 0" xyz="0 ${s0_tower_length} 0"/> 
+	<axis xyz="0 0 1"/>
+      <limit  lower="${-s0_tower_height/2}" upper="${s0_tower_height/2}" velocity="1.0" effort="1"/>	  
+  </joint>  
+  
+  
+  <link name="${prefix}S1_T">
+     <visual>
+         <geometry>
+           <box size="${s1_tower_length}  ${s1_tower_width} ${s1_tower_height}"/>
+         </geometry>
+         <material name="${s1_tower_color}"/>
+     </visual>
+     <collision>
+         <geometry>
+           <box size="${s1_tower_length}  ${s1_tower_width} ${s1_tower_height}"/>
+         </geometry>
+      </collision>
+  </link>
+
+
+  <joint name="${prefix}T_J_S0_SL_TO_S1_T" type="fixed">
+
+      <parent link ="${prefix}S0_SL"/>
+      <child   link="${prefix}S1_T"/>
+      <origin rpy="0 0 0" xyz="0 ${s0_slider_width} ${s1_tower_height/2 - s0_slider_height/2}"/> 	 
+  </joint>  
+  
+   
+  <link name="${prefix}S1_U_SL" >
+     <visual>
+         <geometry>
+          <box size="${s1_slider_length} ${s1_slider_width} ${s1_slider_height}" />
+         </geometry>
+         <material name="${s1_slider_color}"/>
+     </visual>
+     <collision>
+         <geometry>
+          <box size="${s1_slider_length} ${s1_slider_width} ${s1_slider_height}" />
+         </geometry>
+       </collision>
+  </link>  
+  
+
+ <joint name="${prefix}T_J_S1_T_TO_U_SL" type="prismatic">
+
+      <parent link ="${prefix}S1_T"/>
+      <child   link="${prefix}S1_U_SL" />
+      <origin rpy="0 0 0" xyz="0 ${s0_tower_length/2} 0"/> 	 
+	<axis xyz="0 0 1"/>
+      <limit  lower="${-s1_tower_height/2}" upper="${s1_tower_height/2}" velocity="1.0" effort="1"/>	  
+  </joint>  
+ 
+ 
+  <link name="${prefix}S1_SL_B0">
+     <visual>
+         <geometry>
+           <box size="${s1_slider_bracket_length} ${s1_slider_bracket_width} ${s1_slider_bracket_height}" />
+         </geometry>
+        <material name="${s1_slider_color}"/>
+      </visual>
+    <collision>
+         <geometry>
+           <box size="${s1_slider_bracket_length} ${s1_slider_bracket_width} ${s1_slider_bracket_height}" />
+         </geometry>
+      </collision>
+  </link>
+
+
+  <link name="${prefix}S1_SL_B1">
+     <visual>
+         <geometry>
+           <box size="${s1_slider_bracket_length} ${s1_slider_bracket_width} ${s1_slider_bracket_height}" />
+         </geometry>
+        <material name="${s0_slider_color}"/>
+      </visual>
+     <collision>
+         <geometry>
+           <box size="${s1_slider_bracket_length} ${s1_slider_bracket_width} ${s1_slider_bracket_height}" />
+         </geometry>
+       </collision>
+  </link>
+
+
+  <joint name="${prefix}T_J_S1_SL_TO_B0" type="fixed">
+      <parent link="${prefix}S1_U_SL"/>
+      <child link ="${prefix}S1_SL_B0"/>
+      <origin rpy="0 0 0" xyz="0 ${s1_slider_bracket_width/2}  ${arm_l0_height/2 + 0.004}"/> 
+  </joint>  
+  
+  <joint name="${prefix}T_J_S1_SL_TO_B1" type="fixed">
+      <parent link="${prefix}S1_U_SL"/>
+      <child link ="${prefix}S1_SL_B1"/>
+      <origin rpy="0 0 0" xyz="0 ${s1_slider_bracket_width/2} ${-arm_l0_height/2 - 0.004} "/> 
+  </joint>  
+  
+
+  <link name="${prefix}S1_U_A_L0">
+     <visual>
+         <geometry>
+            <box size="${arm_l0_length} ${arm_l0_width} ${arm_l0_height}" />
+         </geometry>
+         <origin rpy="0 0 0" xyz="0.10 0  0" />
+         <material name="${arm_l0_color}"/>
+     </visual>
+     <collision>
+        
+         <geometry>
+            <box size="${arm_l0_length} ${arm_l0_width} ${arm_l0_height}" />
+         </geometry>
+         <origin rpy="0 0 0" xyz="0.10 0  0" />
+      </collision>
+  </link>  
+  
+  
+  <joint name="${prefix}A_J_S1_U_SL_TO_A_L0" type="revolute">
+
+      <parent link ="${prefix}S1_SL_B1"/>
+      <child   link="${prefix}S1_U_A_L0" />
+      <origin rpy="0 0 ${PI/2}" xyz="0 ${s1_slider_width}  ${arm_l0_height/2 + 0.004}"/> 	 
+      <axis xyz="0 0 1"/>
+      <limit  lower="${-PI/2-0.35}" upper="${PI/2+0.35}" velocity="1.0" effort="1"/>	  
+  </joint>  
+ 
+ 
+  <link name="${prefix}S1_U_A_L1">
+     <visual>
+         <geometry>
+            <box size="${arm_l1_length} ${arm_l1_width} ${arm_l1_height}" />
+         </geometry>
+        <origin rpy="0 0 0" xyz="0.10 0  0" />
+          <material name="${arm_l1_color}"/>
+     </visual>
+    <collision>
+         <geometry>
+            <box size="${arm_l1_length} ${arm_l1_width} ${arm_l1_height}" />
+         </geometry>
+        <origin rpy="0 0 0" xyz="0.10 0  0" />
+     </collision>
+  </link>  
+  
+  <joint name="${prefix}A_J_S1_U_A_L0_TO_L1" type="revolute">
+
+      <parent link ="${prefix}S1_U_A_L0"/>
+      <child  link ="${prefix}S1_U_A_L1" />
+	<axis xyz="0 0 1"/>
+      <origin rpy="0 0 0" xyz=" ${arm_l1_length-0.025} 0 ${arm_l0_height}"/> 	 
+      <limit  lower="${-PI/2 -0.35}" upper="${PI/2 +0.35}" velocity="1.0" effort="1"/>	  
+  </joint>  
+ 
+  
+  <link name="${prefix}S1_U_A_L2">
+     <visual>
+         <geometry>
+            <box size="${arm_l2_length} ${arm_l2_width} ${arm_l2_height}" />
+         </geometry>
+
+       <material name="${arm_l2_color}"/>
+      </visual>
+    <collision>
+         <geometry>
+            <box size="${arm_l2_length} ${arm_l2_width} ${arm_l2_height}" />
+         </geometry>
+
+      </collision>
+  </link>  
+  
+  
+  <link name="${prefix}S1_U_A_L2_B0">
+     <visual>
+         <geometry>
+           <box size="${arm_l2_bracket_length} ${arm_l2_bracket_width} ${arm_l2_bracket_height}" />
+         </geometry>
+        <material name="${arm_l2_bracket_color}"/>
+      </visual>
+     <collision>
+         <geometry>
+           <box size="${arm_l2_bracket_length} ${arm_l2_bracket_width} ${arm_l2_bracket_height}" />
+         </geometry>
+       </collision>
+  </link>
+
+ <link name="${prefix}S1_U_A_L2_B1">
+     <visual>
+         <geometry>
+           <box size="${arm_l2_bracket_length} ${arm_l2_bracket_width} ${arm_l2_bracket_height}" />
+         </geometry>
+        <material name="white"/>
+      </visual>
+    <collision>
+         <geometry>
+           <box size="${arm_l2_bracket_length} ${arm_l2_bracket_width} ${arm_l2_bracket_height}" />
+         </geometry>
+        </collision>
+  </link>
+
+
+  <joint name="${prefix}A_J_L_S1_U_A_L2_B0" type="fixed">
+      <parent link="${prefix}S1_U_A_L2"/>
+      <child link ="${prefix}S1_U_A_L2_B0"/>
+      <origin rpy="0 0 0" xyz="${-arm_l2_bracket_length/2} 0  ${arm_l2_height/4 +0.0035 }"/> 
+  </joint>  
+  
+  <joint name="${prefix}A_J_L_S1_U_A_L2_B1" type="fixed">
+      <parent link="${prefix}S1_U_A_L2_B1"/>
+      <child link ="${prefix}S1_U_A_L2"/>
+      <origin rpy="0 0 0" xyz="${arm_l2_bracket_length/2} 0 ${arm_l2_height/4} "/> 
+  </joint>  
+  
+
+   <joint name="${prefix}A_J_S1_U_A_L1_TO_L2_B1" type="revolute">
+
+      <parent link ="${prefix}S1_U_A_L1"/>
+      <child  link= "${prefix}S1_U_A_L2_B1" />
+      <origin rpy="0 0 0" xyz="${arm_l1_length -0.02 } 0 ${-arm_l1_height/2 -0.0035}"/> 	 
+	<axis xyz=" 0 0 1"/>
+      <limit  lower="${-PI/2}" upper="${PI/2}" velocity="1.0" effort="1"/>	  
+  </joint> 
+ 
+</xacro:macro>
+
+ 
+</robot>
+
+ 
