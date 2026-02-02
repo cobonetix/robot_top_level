@@ -5,7 +5,8 @@ package_name = 'picking_system'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    package_dir={'': 'source'},
+    packages=find_packages(where='source', exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

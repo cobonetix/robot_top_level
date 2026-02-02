@@ -9,27 +9,11 @@ from rclpy.node import Node
 from cobonetix_interfaces.srv import ArmJoint, GpioCommand
 from sensor_msgs.msg import JointState
 
-
 class ArmInitCalibrate(Node):
     """Node that sets arm joints and triggers calibration."""
 
     def __init__(self):
         super().__init__('arm_init_calibrate')
-
-        # Create service clients
-        self.joint_client = self.create_client(ArmJoint, 'arm_joint')
-        self.gpio_client = self.create_client(GpioCommand, 'gpio_command')
-
-        # Wait for services to be available
-        self.get_logger().info('Waiting for arm_joint service...')
-        while not self.joint_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('arm_joint service not available, waiting...')
-        self.get_logger().info('Connected to arm_joint service')
-
-        self.get_logger().info('Waiting for gpio_command service...')
-        while not self.gpio_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('gpio_command service not available, waiting...')
-        self.get_logger().info('Connected to gpio_command service')
 
         # Subscribe to joint states
         self._latest_joint_state = None
