@@ -214,7 +214,7 @@ def generate_launch_description():
     # Path to cobonetix services directory
     # Use absolute path since launch file may run from install directory
     services_dir = os.path.expanduser(
-        "~/ros2_ws/src/ros-controls/cobonetix/services"
+        "~/ros2_ws/src/robot_top_level/services"
     )
 
     # Service server processes
