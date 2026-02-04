@@ -82,6 +82,7 @@
         <command_interface name="t_c_auto_mode"/>
         <command_interface name="t_c_valve_open"/>
         <command_interface name="t_c_calibrate"/>
+        <command_interface name="t_c_reset"/>
 
         <state_interface name="t_s_moving"/>
         <state_interface name="t_s_error"/>
@@ -95,6 +96,8 @@
         <command_interface name="r_c_servo"/>
         <command_interface name="r_c_vacuum_on"/>
         <command_interface name="r_c_attach_mode"/>
+        <command_interface name="r_c_lock"/>
+        <command_interface name="r_c_reset"/>
 
         <state_interface name="r_s_moving"/>
         <state_interface name="r_s_error"/>
@@ -109,7 +112,9 @@
 
       <gpio name="left_arm">
         <command_interface name="l_c_door_position"/>
-        
+        <command_interface name="l_c_lock"/>
+        <command_interface name="l_c_reset"/>
+                
         <state_interface name="l_s_moving"/>
         <state_interface name="l_s_error"/>
         <state_interface name="l_s_door_position"/>

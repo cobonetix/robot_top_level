@@ -25,6 +25,7 @@
 #include "rclcpp/time.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "rcutils/logging.h"
 
 using config_type = controller_interface::interface_configuration_type;
 
@@ -203,6 +204,11 @@ controller_interface::InterfaceConfiguration RobotController::state_interface_co
 controller_interface::CallbackReturn RobotController::on_configure(
   const rclcpp_lifecycle::State &)
 {
+  // Set log level to DEBUG for this module
+  rcutils_logging_set_logger_level(
+    get_node()->get_logger().get_name(),
+    RCUTILS_LOG_SEVERITY_DEBUG);
+
   RCLCPP_INFO(get_node()->get_logger(), "Configuring controller");
 
   // Initialize IK solver with configured parameters

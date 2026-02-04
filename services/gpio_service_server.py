@@ -37,10 +37,17 @@ class GpioServiceServer(Node):
             "p": "t_c_pump_on",
             "a": "t_c_auto_mode",
             "c": "t_c_calibrate",
+            "r": "t_c_reset",
+
             "s": "r_c_servo",
             "m": "r_c_attach_mode",
             "v": "r_c_vacuum_on",
-            "d": "l_c_door_position"
+            "l": "r_c_lock",
+            "e": "r_c_reset",
+
+            "d": "l_c_door_position",
+            "n": "l_c_lock",
+            "f": "l_c_reset"
         }
 
         # Variable values
@@ -49,10 +56,17 @@ class GpioServiceServer(Node):
             "t_c_valve_open": 0,
             "t_c_auto_mode": 0,
             "t_c_calibrate": 0,
+            "t_c_reset": 0,
+
             "r_c_servo": 0,
             "r_c_attach_mode": 0,
             "r_c_vacuum_on": 0,
-            "l_c_door_position": 0
+            "r_c_lock": 0,
+            "r_c_reset": 0,
+            
+            "l_c_door_position": 0,
+            "l_c_lock": 0,
+            "l_c_reset": 0
         }
 
         # Store latest GPIO states from subscription
@@ -116,27 +130,34 @@ class GpioServiceServer(Node):
         msg.interface_groups = ["tower", "right_arm", "left_arm"]
 
         tower_value = InterfaceValue(
-            interface_names=["t_c_pump_on", "t_c_auto_mode", "t_c_valve_open", "t_c_calibrate"],
+            interface_names=["t_c_pump_on", "t_c_auto_mode", "t_c_valve_open", "t_c_calibrate", "t_c_reset"],
             values=[
                 float(self.variableToValue["t_c_pump_on"]),
                 float(self.variableToValue["t_c_auto_mode"]),
                 float(self.variableToValue["t_c_valve_open"]),
-                float(self.variableToValue["t_c_calibrate"])
-            ]
+                float(self.variableToValue["t_c_calibrate"]),
+                float(self.variableToValue["t_c_reset"])
+]
         )
 
         right_arm_value = InterfaceValue(
-            interface_names=["r_c_servo", "r_c_vacuum_on", "r_c_attach_mode"],
+            interface_names=["r_c_servo", "r_c_vacuum_on", "r_c_attach_mode", "r_c_lock", "r_c_reset"],
             values=[
                 float(self.variableToValue["r_c_servo"]),
                 float(self.variableToValue["r_c_vacuum_on"]),
-                float(self.variableToValue["r_c_attach_mode"])
+                float(self.variableToValue["r_c_attach_mode"]),
+                float(self.variableToValue["r_c_lock"]),
+                float(self.variableToValue["r_c_reset"])
             ]
         )
 
         left_arm_value = InterfaceValue(
-            interface_names=["l_c_door_position"],
-            values=[float(self.variableToValue["l_c_door_position"])]
+            interface_names=["l_c_door_position", "l_c_lock", "l_c_reset"],
+            values=[
+                float(self.variableToValue["l_c_door_position"])
+              , float(self.variableToValue["l_c_lock"])
+              , float(self.variableToValue["l_c_reset"])
+            ]
         )
 
         msg.interface_values = [tower_value, right_arm_value, left_arm_value]

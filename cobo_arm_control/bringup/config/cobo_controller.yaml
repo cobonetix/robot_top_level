@@ -27,16 +27,21 @@ gpio_controller:
           - t_c_auto_mode
           - t_c_valve_open
           - t_c_calibrate
+          - t_c_reset
 
       right_arm:
         - interfaces:
           - r_c_servo
           - r_c_vacuum_on
           - r_c_attach_mode
+          - r_c_lock
+          - r_c_reset
 
       left_arm:  
         - interfaces:
           - l_c_door_position
+          - l_c_lock
+          - l_c_reset
 
 
     state_interfaces:
