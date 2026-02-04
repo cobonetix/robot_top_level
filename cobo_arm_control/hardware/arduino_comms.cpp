@@ -51,7 +51,7 @@ bool floats_equal(double a, double b, double epsilon)
 // ArduinoComms class implementation
 ArduinoComms::ArduinoComms()
   : logger_(rclcpp::get_logger("ArduinoComms")),
-    logger_initialized_(false),
+    logger_initialized_(true),
     previous_arm_cmd_1_(-1.0),
     previous_arm_cmd_2_(-1.0),
     previous_arm_cmd_3_(-1.0),
@@ -210,6 +210,13 @@ void ArduinoComms::set_tower_parameters(std::vector<double> &hw_commands)
     tower_set_air_on(static_cast<int>(hw_commands[CMD_TOWER_VALVE_OPEN]));
     last_hw_commands_[CMD_TOWER_VALVE_OPEN] = hw_commands[CMD_TOWER_VALVE_OPEN];
   }
+
+  if (!floats_equal(hw_commands[CMD_TOWER_RESET], last_hw_commands_[CMD_TOWER_RESET ]))
+  {
+    tower_reset();
+    last_hw_commands_[CMD_TOWER_RESET] = hw_commands[CMD_TOWER_RESET];
+  }
+
 }
 
 void ArduinoComms::calibrate_tower()
@@ -224,16 +231,29 @@ void ArduinoComms::calibrate_tower()
   send_msg(ss.str(), false, 20000);  // long timeout
 }
 
+void ArduinoComms::tower_reset()
+{
+  if (1) //logger_initialized_)
+  {
+    RCLCPP_INFO(logger_, "Resetting tower");
+  }
+
+  std::stringstream ss;
+  ss << "c";
+  send_msg(ss.str(), false, 20000);  // long timeout
+}
+
 void ArduinoComms::set_arm_position(double val_1, double val_2, double val_3)
 {
+
   if (floats_equal(val_1, previous_arm_cmd_1_) &&
       floats_equal(val_2, previous_arm_cmd_2_) &&
       floats_equal(val_3, previous_arm_cmd_3_))
   {
     return;
   }
-  std::cout  << "SAP " << val_1 << " " << val_2 << " " << val_3 << std::endl;
-  
+ // RCLCPP_INFO(logger_, "AWT %f %f %f", val_1, val_2, val_3);
+    
   previous_arm_cmd_1_ = val_1;
   previous_arm_cmd_2_ = val_2;
   previous_arm_cmd_3_ = val_3;
@@ -241,16 +261,16 @@ void ArduinoComms::set_arm_position(double val_1, double val_2, double val_3)
   if (1) //logger_initialized_)
   {
     const char* arm_name = rightArm_ ? "right" : "left";
-    RCLCPP_DEBUG(logger_, "Set %s arm pos: %.3f %.3f %.3f", arm_name, val_1, val_2, val_3);
+    RCLCPP_INFO(logger_, "Set %s arm pos: %.3f %.3f %.3f", arm_name, val_1, val_2, val_3);
   }
 
   int d_val_1 = adjust_degrees(radians_to_degrees(val_1));
   int d_val_2 = adjust_degrees(radians_to_degrees(val_2));
   int d_val_3 = adjust_degrees(radians_to_degrees(val_3));
 
-  if (logger_initialized_)
+  if (1) // logger_initialized_)
   {
-    RCLCPP_DEBUG(logger_, "Degrees: %d %d %d", d_val_1, d_val_2, d_val_3);
+    RCLCPP_INFO(logger_, "Degrees: %d %d %d", d_val_1, d_val_2, d_val_3);
   }
 
   std::stringstream ss;
@@ -260,6 +280,8 @@ void ArduinoComms::set_arm_position(double val_1, double val_2, double val_3)
 
 void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
 {
+  
+  
   if (rightArm_)
   {
     if (!floats_equal(hw_commands[CMD_RIGHT_ARM_SERVO], last_hw_commands_[CMD_RIGHT_ARM_SERVO]))
@@ -279,6 +301,19 @@ void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
       arm_set_attach_mode(static_cast<int>(hw_commands[CMD_RIGHT_ARM_ATTACH_MODE]));
       last_hw_commands_[CMD_RIGHT_ARM_ATTACH_MODE] = hw_commands[CMD_RIGHT_ARM_ATTACH_MODE];
     }
+
+    if (!floats_equal(hw_commands[CMD_RIGHT_ARM_RESET], last_hw_commands_[CMD_RIGHT_ARM_RESET]))
+    {
+      arm_reset();
+      last_hw_commands_[CMD_RIGHT_ARM_RESET] = hw_commands[CMD_RIGHT_ARM_RESET];
+    }
+
+    if (!floats_equal(hw_commands[CMD_RIGHT_ARM_LOCK], last_hw_commands_[CMD_RIGHT_ARM_LOCK]))
+    {
+      arm_lock(static_cast<int>(hw_commands[CMD_RIGHT_ARM_LOCK]));
+      last_hw_commands_[CMD_RIGHT_ARM_LOCK] = hw_commands[CMD_RIGHT_ARM_LOCK];
+    }
+
   }
   else
   {
@@ -287,13 +322,25 @@ void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
       door_set_position(static_cast<int>(hw_commands[CMD_LEFT_DOOR_POSITION]));
       last_hw_commands_[CMD_LEFT_DOOR_POSITION] = hw_commands[CMD_LEFT_DOOR_POSITION];
     }
+
+    if (!floats_equal(hw_commands[CMD_LEFT_ARM_RESET], last_hw_commands_[CMD_LEFT_ARM_RESET]))
+    {
+      arm_reset();
+      last_hw_commands_[CMD_LEFT_ARM_RESET] = hw_commands[CMD_LEFT_ARM_RESET];
+    }
+
+    if (!floats_equal(hw_commands[CMD_LEFT_ARM_LOCK], last_hw_commands_[CMD_LEFT_ARM_LOCK]))
+    {
+      arm_lock(static_cast<int>(hw_commands[CMD_LEFT_ARM_LOCK]));
+      last_hw_commands_[CMD_LEFT_ARM_LOCK] = hw_commands[CMD_LEFT_ARM_LOCK];
+    }
   }
 }
 
 void ArduinoComms::read_arm_info(double &val_1, double &val_2, double &val_3, std::vector<double> &hw_states)
 {
   int j1, j2, j3, p1, p2, p3, p4, p5,p6,p7;
-
+  
   std::string response = send_msg("s\r");
   const int ret = std::sscanf(response.c_str(), "%d%d%d%d%d%d%d%d%d%d", &j1, &j2, &j3, &p1, &p2, &p3, &p4, &p5, &p6, &p7);
 
@@ -414,7 +461,8 @@ void ArduinoComms::arm_set_vacuum_on(int on_off)
 
 void ArduinoComms::arm_set_fake_mode(int on_off)
 {
-  if (logger_initialized_)
+  
+ if (logger_initialized_)
   {
     RCLCPP_INFO(logger_, "Set arm fake mode: %d", on_off);
   }
@@ -422,6 +470,33 @@ void ArduinoComms::arm_set_fake_mode(int on_off)
   std::stringstream ss;
   ss << "f " << on_off;
   send_msg(ss.str(), true);
+}
+
+void ArduinoComms::arm_reset()
+{
+  
+ if (1) // logger_initialized_)
+  {
+    RCLCPP_INFO(logger_, "Reset arm");
+  }
+
+  std::stringstream ss;
+  ss << "r " ;
+  send_msg(ss.str(), true);
+}
+
+void ArduinoComms::arm_lock(int onOff)
+{
+  
+ if (1) //dlogger_initialized_)
+  {
+    RCLCPP_INFO(logger_, "Lock arms %d" , onOff);
+  }
+
+  std::stringstream ss;
+  ss << "k " << onOff;
+  send_msg(ss.str(), true);
+  
 }
 
 void ArduinoComms::door_set_position(int open_close)
@@ -450,7 +525,8 @@ void ArduinoComms::arm_set_servo(int extension)
 
 void ArduinoComms::set_left_arm()
 {
-  if (logger_initialized_)
+
+if (logger_initialized_)
   {
     RCLCPP_INFO(logger_, "Setting left arm mode");
   }

@@ -16,10 +16,15 @@ enum CommandIndices {
   CMD_TOWER_AUTO_MODE = 1,
   CMD_TOWER_VALVE_OPEN = 2,
   CMD_TOWER_CALIBRATE = 3,
-  CMD_RIGHT_ARM_SERVO = 4,
-  CMD_RIGHT_ARM_VACUUM_ON = 5,
-  CMD_RIGHT_ARM_ATTACH_MODE = 6,
-  CMD_LEFT_DOOR_POSITION = 7,
+  CMD_TOWER_RESET = 4,
+  CMD_RIGHT_ARM_SERVO = 5,
+  CMD_RIGHT_ARM_VACUUM_ON = 6,
+  CMD_RIGHT_ARM_ATTACH_MODE = 7,
+  CMD_RIGHT_ARM_LOCK = 8,
+  CMD_RIGHT_ARM_RESET = 9,
+  CMD_LEFT_DOOR_POSITION = 10,
+  CMD_LEFT_ARM_LOCK = 11,
+  CMD_LEFT_ARM_RESET = 12
 
 };
 
@@ -78,6 +83,7 @@ public:
   void tower_set_fake_mode(int on_off);
   void tower_set_air_on(int on_off);
   void tower_set_auto_mode(int on_off);
+  void tower_reset();
   
 
   // Arm operations
@@ -90,6 +96,9 @@ public:
   void arm_set_servo(int extension);
   void door_set_position(int open_close);
   void set_left_arm();
+  void arm_reset();
+  void arm_lock(int onOff);
+
 
 private:
   LibSerial::SerialPort serial_conn_;

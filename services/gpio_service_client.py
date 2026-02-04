@@ -19,10 +19,15 @@ class GpioServiceClient(Node):
             'p': 't_c_pump_on (0/1)',
             'a': 't_c_auto_mode (0/1)',
             'c': 't_c_calibrate (0/1)',
+            'r': 't_c_reset (0/1)',
             's': 'r_c_servo (0-180)',
             'm': 'r_c_attach_mode (0/1)',
             'v': 'r_c_vacuum_on (0/1)',
-            'd': 'l_c_door_position (0/1)'
+            'l': 'r_c_lock (0/1)',
+            'e': 'r_c_reset (0/1)',
+            'd': 'l_c_door_position (0/1)',
+            'n': 'l_c_lock (0/1)',
+            'f': 'l_c_reset (0/1)'
         }
 
     def send_request(self, command, value):

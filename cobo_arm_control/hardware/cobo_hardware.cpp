@@ -61,7 +61,7 @@ CallbackReturn RobotSystem::on_init(const hardware_interface::HardwareInfo & inf
   joint_position_command_.assign(8, 0);
   joint_velocities_command_.assign(8, 0);
 
-  hw_commands_.assign(CMD_LEFT_DOOR_POSITION + 1, 0.0);
+  hw_commands_.assign(CMD_LEFT_ARM_RESET + 1, 0.0);
   hw_states_.assign(ST_LEFT_DOOR_POSITION + 1, 0.0);
 
   cfg_.towerPort = info_.hardware_parameters["tower_port"];
@@ -233,14 +233,23 @@ CallbackReturn RobotSystem::on_activate(const rclcpp_lifecycle::State & previous
     ArmComms[LEFT_ARM_PORT].disconnect();
     return CallbackReturn::FAILURE;
   }
-
+ 
   RCLCPP_INFO(rclcpp::get_logger("cobo"), "All ports connected, calibrating tower");
 
 
-  // Set fake mode if needed
+
+  if (!cfg_.fakeMode)
+  {
+    // Lock arms
+    ArmComms[LEFT_ARM_PORT].arm_lock(1);
+    ArmComms[RIGHT_ARM_PORT].arm_lock(1);
+  }
+
+    // Set fake mode if needed
   ArmComms[LEFT_ARM_PORT].arm_set_fake_mode(cfg_.fakeMode ? 1 : 0);
   ArmComms[RIGHT_ARM_PORT].arm_set_fake_mode(cfg_.fakeMode ? 1 : 0);
   TowerComms.tower_set_fake_mode(cfg_.fakeMode ? 1 : 0);
+
 
   const double initial_angle_rad = degrees_to_radians(INITIAL_ARM_ANGLE_DEGREES);
   //ArmComms[LEFT_ARM_PORT].set_arm_position(initial_angle_rad, initial_angle_rad, initial_angle_rad);
