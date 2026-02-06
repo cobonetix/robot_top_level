@@ -114,9 +114,9 @@ std::string ArduinoComms::send_msg(const std::string &msg_to_send, bool print_ou
     }
   }
 
-  if (1) //print_output)
+  if (print_output)
   {
-    if (1) //logger_initialized_)
+    if (logger_initialized_)
     {
       RCLCPP_INFO(logger_, "Sent: %s Recv: %s", msg_to_send.c_str(), response.c_str());
     }
