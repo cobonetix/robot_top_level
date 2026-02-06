@@ -3,7 +3,7 @@ from rclpy.node import Node
 from control_msgs.msg import DynamicInterfaceGroupValues, InterfaceValue
 from std_msgs.msg import Header
 from cobonetix_interfaces.srv import GpioCommand
-
+import random
 
 class GpioServiceServer(Node):
     def __init__(self):
@@ -99,6 +99,8 @@ class GpioServiceServer(Node):
             response.current_states = str(self.variableToValue)
             return response
 
+        if cmd == 'c' or cmd == 'r':
+            value = random.random()
         # Update value
         var = self.cmdToVariable[cmd]
         self.variableToValue[var] = value

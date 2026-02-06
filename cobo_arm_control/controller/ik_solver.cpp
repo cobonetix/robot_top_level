@@ -24,12 +24,12 @@ IKSolver::IKSolver(double l1_length, double l2_length)
 : l1_length_(l1_length), l2_length_(l2_length)
 {
   // Initialize default joint limits
-  joint_limits_[static_cast<size_t>(JointType::J1_UP)] = {1.5, 4.79};
-  joint_limits_[static_cast<size_t>(JointType::J1_DOWN)] = {1.5, 4.79};
-  joint_limits_[static_cast<size_t>(JointType::J2_UP)] = {1.5, 4.79};
-  joint_limits_[static_cast<size_t>(JointType::J2_DOWN)] = {1.5, 4.79};
-  joint_limits_[static_cast<size_t>(JointType::J3_UP)] = {-1.57, 1.57};
-  joint_limits_[static_cast<size_t>(JointType::J3_DOWN)] = {-1.57, 1.57};
+  joint_limits_[static_cast<size_t>(JointType::J1_UP)] = {1.58, 4.79};
+  joint_limits_[static_cast<size_t>(JointType::J1_DOWN)] = {1.58, 4.79};
+  joint_limits_[static_cast<size_t>(JointType::J2_UP)] = {1.58, 4.79};
+  joint_limits_[static_cast<size_t>(JointType::J2_DOWN)] = {1.58, 4.79};
+  joint_limits_[static_cast<size_t>(JointType::J3_UP)] = {-1.58, 1.57};
+  joint_limits_[static_cast<size_t>(JointType::J3_DOWN)] = {-1.58, 1.57};
 
   // Initialize default joint conversions
   joint_conversions_[static_cast<size_t>(JointType::J1_UP)] = 1.57;
@@ -141,16 +141,19 @@ bool IKSolver::computeIKSolution(
     return false;
   }
 
-  // Joint 2 angle (elbow angle)
-  double j2 = (config == ElbowConfig::UP) ?
+  // Joint 2 angle (elbow angle) - raw geometric angle
+  const double j2_raw = (config == ElbowConfig::UP) ?
               std::acos(cos_j2) : -std::acos(cos_j2);
 
-  // Joint 1 angle (shoulder angle)
-  const double k1 = l1_length_ + l2_length_ * std::cos(j2);
-  const double k2 = l2_length_ * std::sin(j2);
-  double j1 = std::atan2(y, x) - std::atan2(k2, k1);
+  // Joint 1 angle (shoulder angle) - raw geometric angle
+  const double k1 = l1_length_ + l2_length_ * std::cos(j2_raw);
+  const double k2 = l2_length_ * std::sin(j2_raw);
+  const double j1_raw = std::atan2(y, x) - std::atan2(k2, k1);
 
-  // Adjust for joint conventions
+  // Compute joint 3 using raw geometric angles (before motor convention adjustment)
+  double j3 = computeEndEffectorRotation(j1_raw, j2_raw, target_rotation);
+
+  // Now adjust j1/j2 for motor conventions
   const JointType j1_type = (config == ElbowConfig::UP) ?
                             JointType::J1_UP : JointType::J1_DOWN;
   const JointType j2_type = (config == ElbowConfig::UP) ?
@@ -158,35 +161,24 @@ bool IKSolver::computeIKSolution(
   const JointType j3_type = (config == ElbowConfig::UP) ?
                             JointType::J3_UP : JointType::J3_DOWN;
 
-  j1 = adjustJointAngle(j1, j1_type);
-  j2 = adjustJointAngle(j2, j2_type);
+  double j1 = adjustJointAngle(j1_raw, j1_type);
+  double j2 = adjustJointAngle(j2_raw, j2_type);
 
-  // Check joint limits
+  // Check joint limits (in motor coordinates)
   if (!isWithinLimits(j1, j1_type) || !isWithinLimits(j2, j2_type)) {
     std::cout << "j1/2 limits " << j1 << " " << j2 << std::endl;
     return false;
   }
 
-  // Compute joint 3 for end effector rotation
-  double j3 = computeEndEffectorRotation(j1, j2, target_rotation);
-      std::cout << "j3 value " << j3 << std::endl;
-  
-  // Check joint 3 limits
+  // Check joint 3 limits (j3 is already normalized to [-PI, PI])
   if (!isWithinLimits(j3, j3_type)) {
-    // Try to wrap the angle differently if it's close to limits
-    j3 += M_PI;
-    if (j3 > M_PI) {
-      j3 -= 2.0 * M_PI;
-    }
-    if (!isWithinLimits(j3, j3_type)) {
-      std::cout << "j3 limits " << j3 << std::endl;
-      return false;
-    }
+    std::cout << "j3 limits " << j3 << std::endl;
+    return false;
   }
 
-  // Populate solution
-  solution.joint_1 = j1;
-  solution.joint_2 = j2;
+  // Populate solution with geometric angles (not motor-converted angles)
+  solution.joint_1 = j1_raw;
+  solution.joint_2 = j2_raw;
   solution.joint_3 = j3;
   solution.elbow_config = config;
   solution.is_valid = true;

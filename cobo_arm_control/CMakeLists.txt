@@ -54,6 +54,13 @@ ament_target_dependencies(
   ${REF_GEN_INCLUDE_DEPENDS}
 )
 
+# Test executable for IK solver
+add_executable(test_ik_solver controller/test_ik_solver.cpp controller/ik_solver.cpp)
+target_compile_features(test_ik_solver PUBLIC cxx_std_17)
+target_include_directories(test_ik_solver PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/controller/include>
+)
+
 add_library(
   cobo_arm_control_lib
   SHARED
@@ -97,7 +104,7 @@ install(
   DESTINATION share/cobo_arm_control
 )
 install(
-    TARGETS send_trajectory
+    TARGETS send_trajectory test_ik_solver
     RUNTIME DESTINATION lib/cobo_arm_control
 )
 
