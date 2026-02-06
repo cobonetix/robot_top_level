@@ -118,7 +118,7 @@ std::string ArduinoComms::send_msg(const std::string &msg_to_send, bool print_ou
   {
     if (1) //logger_initialized_)
     {
-      RCLCPP_DEBUG(logger_, "Sent: %s Recv: %s", msg_to_send.c_str(), response.c_str());
+      RCLCPP_INFO(logger_, "Sent: %s Recv: %s", msg_to_send.c_str(), response.c_str());
     }
     else
     {
@@ -190,7 +190,7 @@ void ArduinoComms::set_tower_parameters(std::vector<double> &hw_commands)
     std::cout << "TC " << hw_commands[CMD_TOWER_CALIBRATE] << " " << last_hw_commands_[CMD_TOWER_CALIBRATE] << std::endl;
   
     calibrate_tower();
-    last_hw_commands_[CMD_TOWER_CALIBRATE] = hw_commands[CMD_TOWER_CALIBRATE];
+    last_hw_commands_[CMD_TOWER_CALIBRATE] =hw_commands[CMD_TOWER_CALIBRATE]; //
   }
 
   if (!floats_equal(hw_commands[CMD_TOWER_PUMP_ON], last_hw_commands_[CMD_TOWER_PUMP_ON]))
@@ -215,6 +215,7 @@ void ArduinoComms::set_tower_parameters(std::vector<double> &hw_commands)
   {
     tower_reset();
     last_hw_commands_[CMD_TOWER_RESET] = hw_commands[CMD_TOWER_RESET];
+    
   }
 
 }
