@@ -11,7 +11,7 @@ setup(
         'picking_utils',
         'pick_item',
         'arm_init_calibrate',
-        'service_clients',
+        'ros_context',
         'joint_state_listener',
     ],
     data_files=[
