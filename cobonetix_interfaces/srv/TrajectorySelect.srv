@@ -1,0 +1,7 @@
+# Request: select a trajectory by its integer ID
+int32 trajectory_id
+float64 step_delay_sec        # seconds to wait between each step (0 = no delay)
+---
+# Response: confirmation
+bool success
+string message

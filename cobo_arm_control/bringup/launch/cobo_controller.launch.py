@@ -62,12 +62,20 @@ def generate_launch_description():
             description="Start the GPIO status service server.",
         )
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "trajectory_service",
+            default_value="true",
+            description="Start the trajectory select service server.",
+        )
+    )
     # Initialize Arguments
     gui = LaunchConfiguration("gui")
     joint_service = LaunchConfiguration("joint_service")
     pose_service = LaunchConfiguration("pose_service")
     gpio_service = LaunchConfiguration("gpio_service")
     gpio_status_service = LaunchConfiguration("gpio_status_service")
+    trajectory_service = LaunchConfiguration("trajectory_service")
 
     # Get URDF via xacro
     robot_description_content = Command(
@@ -246,6 +254,13 @@ def generate_launch_description():
         condition=IfCondition(gpio_status_service),
     )
 
+    trajectory_service_server = ExecuteProcess(
+        cmd=["python3", os.path.join(services_dir, "trajectory_service_server.py")],
+        name="trajectory_service_server",
+        output="screen",
+        condition=IfCondition(trajectory_service),
+    )
+
       # Load controllers
     load_controllers = []
     for controller in [
@@ -277,6 +292,7 @@ def generate_launch_description():
             pose_service_server,
             gpio_service_server,
             gpio_status_server,
+            trajectory_service_server,
         ]  + load_controllers
         )
     

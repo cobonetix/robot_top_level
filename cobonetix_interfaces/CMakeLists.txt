@@ -13,6 +13,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ArmPose.srv"
   "srv/GpioCommand.srv"
   "srv/GpioStatus.srv"
+  "srv/TrajectorySelect.srv"
 )
 
 ament_package()
