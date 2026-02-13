@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 
 import rclpy
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from cobonetix_interfaces.srv import ArmJoint, TrajectorySelect
 
@@ -21,12 +23,15 @@ def load_trajectories(filepath):
     """Load trajectories from a CSV file.
 
     Expected format — first column is the integer trajectory ID,
-    remaining 8 columns are joint values:
-        id, l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4
+    next 8 columns are joint values, last column is a wait flag:
+        id, l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4, wait
     First row is a header and is skipped.
     Multiple rows may share the same ID — they form the ordered steps
     of that trajectory.
     Degree-valued fields (l_j2-l_j4, r_j2-r_j4) are converted to radians.
+    The wait column (1/0) indicates whether the system should wait for
+    all movement to complete before proceeding to the next step.
+    If the column is missing, wait defaults to 0 (no wait).
     """
     trajectories = {}
     with open(filepath) as f:
@@ -36,7 +41,8 @@ def load_trajectories(filepath):
         vals = line.split(',')
         if len(vals) < 9:
             raise ValueError(
-                f"CSV line {line_num}: expected 9 columns (id + 8 joints), got {len(vals)}")
+                f"CSV line {line_num}: expected at least 9 columns "
+                f"(id + 8 joints), got {len(vals)}")
         try:
             traj_id = int(vals[0])
             joints = {}
@@ -45,6 +51,7 @@ def load_trajectories(filepath):
                 if field in DEG_TO_RAD_FIELDS:
                     v = math.radians(v)
                 joints[field] = v
+            joints['wait'] = int(vals[9]) if len(vals) > 9 else 0
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid value on CSV line {line_num}: {e}")
         trajectories.setdefault(traj_id, []).append(joints)
@@ -64,15 +71,25 @@ class TrajectoryServiceServer(Node):
             f'Loaded {len(self.trajectories)} trajectories: '
             f'{sorted(self.trajectories.keys())}')
 
+        # Callback group so client calls can be processed while a
+        # service callback is in progress (avoids single-thread deadlock).
+        self._client_cb_group = ReentrantCallbackGroup()
+
         # Client to the arm_joint service
-        self.joint_client = self.create_client(ArmJoint, 'arm_joint')
+        self.joint_client = self.create_client(
+            ArmJoint, 'arm_joint', callback_group=self._client_cb_group)
         while not self.joint_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for arm_joint service...')
         self.get_logger().info('Connected to arm_joint service')
 
-        # Trajectory selection service
+        # Trajectory selection service — uses its own ReentrantCallbackGroup
+        # so the executor can process client-response callbacks on another
+        # thread while this service handler is blocked waiting on a future.
+        self._srv_cb_group = ReentrantCallbackGroup()
         self.srv = self.create_service(
-            TrajectorySelect, 'trajectory_select', self.handle_trajectory_select)
+            TrajectorySelect, 'trajectory_select',
+            self.handle_trajectory_select,
+            callback_group=self._srv_cb_group)
         self.get_logger().info('trajectory_select service is ready')
 
     def handle_trajectory_select(self, request, response):
@@ -111,8 +128,8 @@ class TrajectoryServiceServer(Node):
             arm_request.r_j4 = joints['r_j4']
 
             future = self.joint_client.call_async(arm_request)
-            rclpy.spin_until_future_complete(self, future)
-
+            while not future.done():
+                time.sleep(0.01)
             result = future.result()
             self.get_logger().info(
                 f'  arm_joint response: success={result.success}, '
@@ -136,8 +153,10 @@ class TrajectoryServiceServer(Node):
 def main(args=None):
     rclpy.init(args=args)
     server = TrajectoryServiceServer()
+    executor = MultiThreadedExecutor()
+    executor.add_node(server)
     try:
-        rclpy.spin(server)
+        executor.spin()
     except KeyboardInterrupt:
         server.get_logger().info('Shutting down trajectory service server.')
     finally:

@@ -38,7 +38,7 @@ class JointServiceServer(Node):
             DynamicInterfaceGroupValues,
             '/gpio_controller/gpio_states',
             self.listener_callback,
-            10,
+            1,
             callback_group=self.subscription_cb_group)
 
         self.get_logger().info('Joint service server is ready')
@@ -79,39 +79,52 @@ class JointServiceServer(Node):
             response.message = 'No arms commanded to move (all joints zero)'
             return response
 
-        # Wait for movement to complete (tower and commanded arms stopped)
+        # Clear stale gpio_states so we only act on fresh data
+        self.gpio_states = {
+            'tower': {},
+            'right_arm': {},
+            'left_arm': {}
+        }
+        self.gpio_response_received = False
+
+        # Two-phase wait:
+        #   Phase 1 - wait until at least one component reports moving
+        #   Phase 2 - wait until all components report stopped
         timeout_sec = 30.0
         poll_interval = 0.1
         start_time = self.get_clock().now()
+        movement_started = False
         movement_complete = False
 
         while not movement_complete:
-            # Sleep and let the executor handle subscription callbacks
             time.sleep(poll_interval)
 
             elapsed = (self.get_clock().now() - start_time).nanoseconds / 1e9
             if elapsed > timeout_sec:
-                self.get_logger().warn('Timeout waiting for movement to complete')
+                phase = 'start' if not movement_started else 'complete'
+                self.get_logger().warn(f'Timeout waiting for movement to {phase}')
                 break
 
-            # Check if tower has stopped moving
-            tower_moving = self.gpio_states.get('tower', {}).get('t_s_moving', 1.0)
+            # Don't check until we've received a fresh gpio_states message
+            if not self.gpio_response_received:
+                continue
 
-            # Only check arms that were commanded to move
-            left_arm_moving = self.gpio_states.get('left_arm', {}).get('l_s_moving', 1.0) if move_left else 0.0
-            right_arm_moving = self.gpio_states.get('right_arm', {}).get('r_s_moving', 1.0) if move_right else 0.0
+            tower_moving = self.gpio_states.get('tower', {}).get('t_s_moving', 0.0)
+            left_arm_moving = self.gpio_states.get('left_arm', {}).get('l_s_moving', 0.0)
+            right_arm_moving = self.gpio_states.get('right_arm', {}).get('r_s_moving', 0.0)
 
-            # Values are floats; 0.0 means not moving
-            if tower_moving == 0.0 and left_arm_moving == 0.0 and right_arm_moving == 0.0:
-                movement_complete = True
-                arms_moved = []
-                if move_left:
-                    arms_moved.append('left')
-                if move_right:
-                    arms_moved.append('right')
-                self.get_logger().info(
-                    f'Movement complete - tower and {" and ".join(arms_moved)} arm(s) stopped'
-                )
+            if not movement_started:
+                # Phase 1: wait until something is moving
+                if tower_moving != 0.0 or left_arm_moving != 0.0 or right_arm_moving != 0.0:
+                    movement_started = True
+                    self.get_logger().info('Movement detected')
+            else:
+                # Phase 2: wait until everything has stopped
+                if tower_moving == 0.0 and left_arm_moving == 0.0 and right_arm_moving == 0.0:
+                    movement_complete = True
+                    self.get_logger().info(
+                        'Movement complete - tower and both arms stopped'
+                    )
 
         # Log parsed states (moving and error only)
         if 'tower' in self.gpio_states and self.gpio_states['tower']:

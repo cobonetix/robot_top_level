@@ -1,0 +1,12 @@
+string idle
+string nanual
+string train
+string navigate
+string picking
+
+---
+string idle_ok
+string nanual_ok
+string train
+string navigate
+string picking

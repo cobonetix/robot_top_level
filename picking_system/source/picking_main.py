@@ -10,7 +10,7 @@ import sys
 
 import ros_context
 from arm_init_calibrate import run_init_sequence
-from picking_utils import process_orders
+from process_orders import process_orders
 
 
 def main():

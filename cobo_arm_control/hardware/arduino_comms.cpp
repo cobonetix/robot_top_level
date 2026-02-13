@@ -141,6 +141,9 @@ void ArduinoComms::read_tower_info(double &val_1, double &val_2, std::vector<dou
   std::string response = send_msg("s");
   const int ret = std::sscanf(response.c_str(), "%d%d%d%d%d%d%d%d", &rT_pos, &lT_pos, &p1, &p2, &p3, &p4,&p5, &p6);
 
+  if (response.c_str()[0] == '*')
+    return;
+    
   if (ret == 8)
   {
     hw_states[ST_TOWER_MOVING] = p1;
