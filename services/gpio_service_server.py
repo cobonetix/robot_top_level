@@ -13,7 +13,7 @@ class GpioServiceServer(Node):
         self.publisher_ = self.create_publisher(
             DynamicInterfaceGroupValues,
             "/gpio_controller/commands",
-            10
+            1
         )
 
         # Subscriber for GPIO states
@@ -21,7 +21,7 @@ class GpioServiceServer(Node):
             DynamicInterfaceGroupValues,
             '/gpio_controller/gpio_states',
             self.gpio_states_callback,
-            10
+            1
         )
 
         # Create the service

@@ -10,7 +10,9 @@ from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
-from cobonetix_interfaces.srv import ArmJoint, GpioCommand, GpioStatus
+from rclpy.action import ActionClient
+from cobonetix_interfaces.srv import ArmJoint, GpioCommand, GpioStatus, TrajectorySelect
+from api_interface.action import Navigate
 from sensor_msgs.msg import JointState
 
 # Path to the shared data directory (robot_top_level/data/)
@@ -21,6 +23,8 @@ node: Node = None
 joint_client = None
 arm_cmd_client = None
 arm_status_client = None
+navigate_client = None
+trajectory_client = None
 latest_joint_state: JointState = None
 
 
@@ -37,7 +41,7 @@ def init(args=None):
 
     Call this once at startup before any other picking routines.
     """
-    global node, joint_client, arm_cmd_client, arm_status_client
+    global node, joint_client, arm_cmd_client, arm_status_client, navigate_client, trajectory_client
 
     rclpy.init(args=args)
     node = Node('picking_system')
@@ -46,6 +50,12 @@ def init(args=None):
     joint_client = node.create_client(ArmJoint, '/arm_joint')
     arm_cmd_client = node.create_client(GpioCommand, '/gpio_command')
     arm_status_client = node.create_client(GpioStatus, '/gpio_status')
+
+    # Create trajectory service client
+    trajectory_client = node.create_client(TrajectorySelect, 'trajectory_select')
+
+    # Create navigate action client
+    navigate_client = ActionClient(node, Navigate, 'navigate')
 
     # Subscribe to joint states
     node.create_subscription(JointState, '/joint_states', _joint_state_callback, 10)
@@ -65,6 +75,16 @@ def init(args=None):
     while not arm_status_client.wait_for_service(timeout_sec=1.0):
         node.get_logger().info('gpio_status service not available, waiting...')
     node.get_logger().info('Connected to gpio_status service')
+
+    node.get_logger().info('Waiting for trajectory_select service...')
+    while not trajectory_client.wait_for_service(timeout_sec=1.0):
+        node.get_logger().info('trajectory_select service not available, waiting...')
+    node.get_logger().info('Connected to trajectory_select service')
+
+    node.get_logger().info('Waiting for navigate action server...')
+    while not navigate_client.wait_for_server(timeout_sec=1.0):
+        node.get_logger().info('navigate action server not available, waiting...')
+    node.get_logger().info('Connected to navigate action server')
 
     node.get_logger().info('Picking system node initialized')
 

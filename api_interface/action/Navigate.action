@@ -1,0 +1,10 @@
+# Goal - nav command and target UPC to navigate to
+string nav_command
+string target_upc
+---
+# Result - final status
+string result
+---
+# Feedback - progress updates during navigation
+string status
+int32 nav_request_count
