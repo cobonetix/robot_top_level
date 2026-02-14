@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 5  # Hz
+    update_rate: 3  # Hz
 
   
     cobo_controller:
