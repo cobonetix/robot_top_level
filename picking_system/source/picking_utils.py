@@ -10,61 +10,6 @@ from api_interface.action import Navigate
 import ros_context
 
 
-@dataclass
-class QuantitySku:
-    quantity: int
-    sku: str
-
-
-def _resolve_path(file_path: str) -> str:
-    """Resolve a filename relative to DATA_DIR if it is not already absolute."""
-    if os.path.isabs(file_path):
-        return file_path
-    return str(ros_context.DATA_DIR / file_path)
-
-
-def get_items_to_order(file_path: str) -> list[QuantitySku]:
-    """
-    Read a CSV file with quantity and SKU columns into a list of objects.
-
-    Args:
-        file_path: Path or filename (resolved relative to DATA_DIR)
-
-    Returns:
-        List of QuantitySku objects
-    """
-    result = []
-    with open(_resolve_path(file_path), 'r', newline='') as f:
-        reader = csv.reader(f)
-        next(reader, None)  # Skip header row
-        for row in reader:
-            obj = QuantitySku(
-                quantity=int(row[0]),
-                sku=row[1]
-            )
-            result.append(obj)
-    return result
-
-
-def load_all_orders(file_path: str) -> list[str]:
-    """
-    Read a CSV file with rows of strings into a list.
-
-    Args:
-        file_path: Path or filename (resolved relative to DATA_DIR)
-
-    Returns:
-        List of strings
-    """
-    result = []
-    with open(_resolve_path(file_path), 'r', newline='') as f:
-        reader = csv.reader(f)
-        next(reader, None)  # Skip header row
-        for row in reader:
-            result.append(row[0])
-    return result
-
-
 def wait_for_arm_idle(group: str = 'tower', field: str = 't_s_moving',
                        timeout: float = 30.0, poll_interval: float = 0.5) -> bool:
     """Poll the gpio_status service until the specified field reports idle (0.0).
@@ -167,7 +112,11 @@ def send_navigate_goal(nav_command: str, target_upc: str,
     goal_future = ros_context.navigate_client.send_goal_async(
         goal_msg, feedback_callback=_navigate_feedback_callback
     )
-    rclpy.spin_until_future_complete(ros_context.node, goal_future)
+    rclpy.spin_until_future_complete(ros_context.node, goal_future, timeout_sec=timeout_sec)
+
+    if not goal_future.done():
+        logger.error('Timed out waiting for navigate goal acceptance')
+        return None
 
     goal_handle = goal_future.result()
     if not goal_handle.accepted:
@@ -270,22 +219,4 @@ def send_trajectory_request(trajectory_id: int, step_delay_sec: float = 0.0) -> 
 
     logger.info(f'Trajectory request succeeded: {result.message}')
     return True
-
-
-def sort_items(items: list[QuantitySku]) -> list[QuantitySku]:
-    """
-    Sort a list of QuantitySku objects.
-
-    Args:
-        items: List of QuantitySku objects to sort
-
-    Returns:
-        Sorted list of QuantitySku objects
-    """
-
-
-    
-    # TODO: Implement sorting algorithm
-    return items
-
 

@@ -6,8 +6,11 @@ from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from api_interface.action import Navigate
 from std_msgs.msg import String
+from geometry_msgs.msg import Twist
 import threading
 import subprocess
+import math
+import time
 import json
 import networkx as nx
 from networkx.readwrite import json_graph
@@ -49,6 +52,13 @@ class NavigateActionServer(Node):
         self.nav_man_publisher = self.create_publisher(
             String,
             'nav_man_pub',
+            10
+        )
+
+        # Create publisher for cmd_vel topic (teleop rotation)
+        self.cmd_vel_publisher = self.create_publisher(
+            Twist,
+            'cmd_vel',
             10
         )
 
@@ -112,16 +122,16 @@ class NavigateActionServer(Node):
         except FileNotFoundError:
             self.get_logger().error('sshpass command not found')
 
-        # Download netx_nav_only_list.txt
-        remote_path_nav_only = "bob@bob-orin:/home/bob/cobo_lab_test_v2/training/netx_nav_only_list.txt"
+        # Download netx_nav_only_graph.txt
+        remote_path_nav_only = "bob@bob-orin:/home/bob/cobo_lab_test_v2/training/netx_nav_only_graph.txt"
         cmd_nav_only = ["sshpass", "-p", "bob", "scp", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", remote_path_nav_only, local_path]
 
-        self.get_logger().info(f'Downloading netx_nav_only_list.txt from {remote_path_nav_only}')
+        self.get_logger().info(f'Downloading netx_nav_only_graph.txt from {remote_path_nav_only}')
         try:
             subprocess.run(cmd_nav_only, check=True)
-            self.get_logger().info(f'Successfully downloaded netx_nav_only_list.txt to {local_path}')
+            self.get_logger().info(f'Successfully downloaded netx_nav_only_graph.txt to {local_path}')
         except subprocess.CalledProcessError as e:
-            self.get_logger().error(f'Failed to download netx_nav_only_list.txt: {e}')
+            self.get_logger().error(f'Failed to download netx_nav_only_graph.txt: {e}')
         except FileNotFoundError:
             self.get_logger().error('sshpass command not found')
 
@@ -139,9 +149,32 @@ class NavigateActionServer(Node):
             if self.pick_response_event is not None:
                 self.pick_response_event.set()
 
-    def match_partial_upc_to_full(self, partial_upc):
-        """Match partial UPC (before underscore) to full UPC in netx_list.txt"""
+    def search_netx_list_by_short_upc(self, short_upc):
+        """Find all full UPCs in netx_list.txt whose prefix (before _) matches short_upc.
+        Returns list of unique full UPCs."""
         netx_file_path = "/home/stan/dev_ws/netx_database/netx_list.txt"
+        matches = []
+        try:
+            with open(netx_file_path, 'r') as f:
+                for line in f:
+                    parts = line.strip().split(',')
+                    if len(parts) >= 2:
+                        full_upc = parts[1].strip()
+                        if not full_upc:
+                            continue
+                        prefix = full_upc.split('_')[0] if '_' in full_upc else full_upc
+                        if prefix == short_upc and full_upc not in matches:
+                            matches.append(full_upc)
+            self.get_logger().info(f'Short UPC "{short_upc}" matched {len(matches)} entries: {matches}')
+        except FileNotFoundError:
+            self.get_logger().error(f'netx_list.txt not found at {netx_file_path}')
+        except Exception as e:
+            self.get_logger().error(f'Error searching netx_list.txt: {e}')
+        return matches
+
+    def match_partial_upc_to_full(self, partial_upc):
+        """Match partial UPC (before underscore) to full UPC in netx_nav_only_graph.txt"""
+        netx_file_path = "/home/stan/dev_ws/netx_database/netx_nav_only_graph.txt"
         try:
             with open(netx_file_path, 'r') as f:
                 for line in f:
@@ -156,7 +189,7 @@ class NavigateActionServer(Node):
             self.get_logger().info(f'No match found for partial UPC {partial_upc}')
             return None
         except FileNotFoundError:
-            self.get_logger().error(f'netx_list.txt not found at {netx_file_path}')
+            self.get_logger().error(f'netx_nav_only_graph.txt not found at {netx_file_path}')
             return None
         except Exception as e:
             self.get_logger().error(f'Error matching partial UPC: {e}')
@@ -340,8 +373,8 @@ class NavigateActionServer(Node):
             return None
 
     def get_nav_upcs_from_image(self, image_number):
-        """Get navigation UPCs (second field) from image number by looking up in netx_nav_only_list.txt"""
-        netx_nav_only_path = "/home/stan/dev_ws/netx_database/netx_nav_only_list.txt"
+        """Get navigation UPCs (second field) from image number by looking up in netx_nav_only_graph.txt"""
+        netx_nav_only_path = "/home/stan/dev_ws/netx_database/netx_nav_only_graph.txt"
         nav_upcs = []
         try:
             with open(netx_nav_only_path, 'r') as f:
@@ -355,10 +388,10 @@ class NavigateActionServer(Node):
             self.get_logger().info(f'Found {len(nav_upcs)} navigation UPCs for image {image_number}: {nav_upcs}')
             return nav_upcs
         except FileNotFoundError:
-            self.get_logger().error(f'netx_nav_only_list.txt not found at {netx_nav_only_path}')
+            self.get_logger().error(f'netx_nav_only_graph.txt not found at {netx_nav_only_path}')
             return []
         except Exception as e:
-            self.get_logger().error(f'Error reading netx_nav_only_list.txt: {e}')
+            self.get_logger().error(f'Error reading netx_nav_only_graph.txt: {e}')
             return []
 
     def nav_status_callback(self, msg):
@@ -389,7 +422,7 @@ class NavigateActionServer(Node):
                 self.navigation_complete_event.set()
                 self.get_logger().info(f'Event is_set after setting: {self.navigation_complete_event.is_set()}')
             else:
-                self.get_logger().warn('Completion event is None - navigation may not be active')
+                self.get_logger().info('Completion event is None - no navigation waiting (likely ROTATE or completed command)')
 
     def execute_callback(self, goal_handle):
         """Execute the navigation action"""
@@ -413,6 +446,46 @@ class NavigateActionServer(Node):
         # Handle UPC verification command
         if nav_command == "UPC":
             result = Navigate.Result()
+
+            # Detect short UPC: no underscore, or suffix after underscore is not a digit
+            is_short_upc = ('_' not in target_upc) or (not target_upc.split('_')[-1].isdigit())
+
+            if is_short_upc:
+                # --- Short UPC: find all matching full UPCs in netx_list.txt ---
+                matches = self.search_netx_list_by_short_upc(target_upc)
+                if not matches:
+                    goal_handle.succeed()
+                    result.result = f"NO MATCHES FOUND FOR SHORT UPC {target_upc}"
+                    self.get_logger().info(f'No matches found for short UPC {target_upc}')
+                    return result
+
+                # Get current location once for all distance calculations
+                current_upc = self.get_current_upc()
+
+                match_results = []
+                for full_upc in matches:
+                    height = self.calculate_target_height(full_upc)
+
+                    path_distance = -1
+                    if current_upc is not None:
+                        image_number = self.get_image_number_from_upc(full_upc)
+                        if image_number is not None:
+                            nav_upcs = self.get_nav_upcs_from_image(image_number)
+                            for nav_upc in nav_upcs:
+                                d = self.calculate_path_distance(current_upc, nav_upc)
+                                if d > 0:
+                                    path_distance = d
+                                    break
+
+                    match_results.append(f"{full_upc}:H={height}:D={path_distance}")
+                    self.get_logger().info(f'Match {full_upc}: height={height}, distance={path_distance}')
+
+                goal_handle.succeed()
+                result.result = "MATCHES: " + ", ".join(match_results)
+                self.get_logger().info(f'Short UPC result: {result.result}')
+                return result
+
+            # --- Full UPC: existing exact-match logic ---
 
             # First verify if target UPC exists in database
             if not self.verify_upc(target_upc):
@@ -534,16 +607,27 @@ class NavigateActionServer(Node):
                 result.result = f'NUDGE rejected - Invalid value "{target_upc}". Must be a decimal number.'
                 return result
         elif nav_command == "ROTATE":
-            # Validate that target_upc contains a valid decimal number
+            # Validate that target_upc contains a valid decimal number (degrees)
             try:
-                rotate_value = float(target_upc)
-                msg.data = f"ROTATE: {rotate_value}"
+                degrees = float(target_upc)
             except ValueError:
-                self.get_logger().error(f'Invalid ROTATE value: {target_upc}. Must be a decimal number.')
+                self.get_logger().error(f'Invalid ROTATE value: {target_upc}. Must be a decimal number (degrees).')
                 goal_handle.abort()
                 result = Navigate.Result()
-                result.result = f'ROTATE rejected - Invalid value "{target_upc}". Must be a decimal number.'
+                result.result = f'ROTATE rejected - Invalid value "{target_upc}". Must be a decimal number (degrees).'
                 return result
+
+            # Execute rotation using a separate process with its own rclpy context
+            import os
+            script_path = os.path.join(os.path.dirname(__file__), 'rotate_publisher.py')
+            self.get_logger().info(f'Executing ROTATE: {degrees} degrees via {script_path}')
+            subprocess.run(['python3', script_path, str(degrees)])
+
+            self.get_logger().info('ROTATE completed')
+            goal_handle.succeed()
+            result = Navigate.Result()
+            result.result = f'ROTATE completed - {degrees} degrees'
+            return result
         else:
             msg.data = f"{nav_command}: {target_upc}"
         self.pos_node_publisher.publish(msg)

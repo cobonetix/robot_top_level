@@ -23,26 +23,24 @@ def load_trajectories(filepath):
     """Load trajectories from a CSV file.
 
     Expected format — first column is the integer trajectory ID,
-    next 8 columns are joint values, last column is a wait flag:
-        id, l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4, wait
+    next 8 columns are joint values, last column is the trajectory name:
+        id, l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4, name
     First row is a header and is skipped.
     Multiple rows may share the same ID — they form the ordered steps
     of that trajectory.
     Degree-valued fields (l_j2-l_j4, r_j2-r_j4) are converted to radians.
-    The wait column (1/0) indicates whether the system should wait for
-    all movement to complete before proceeding to the next step.
-    If the column is missing, wait defaults to 0 (no wait).
     """
     trajectories = {}
+    traj_names = {}
     with open(filepath) as f:
         content = f.read().replace('"', '')
     lines = content.strip().splitlines()
     for line_num, line in enumerate(lines[1:], start=2):
-        vals = line.split(',')
-        if len(vals) < 9:
+        vals = [v.strip() for v in line.split(',')]
+        if len(vals) < len(JOINT_FIELDS) + 2:
             raise ValueError(
-                f"CSV line {line_num}: expected at least 9 columns "
-                f"(id + 8 joints), got {len(vals)}")
+                f"CSV line {line_num}: expected at least {len(JOINT_FIELDS) + 2} columns "
+                f"(id + 8 joints + name), got {len(vals)}")
         try:
             traj_id = int(vals[0])
             joints = {}
@@ -51,11 +49,12 @@ def load_trajectories(filepath):
                 if field in DEG_TO_RAD_FIELDS:
                     v = math.radians(v)
                 joints[field] = v
-            joints['wait'] = int(vals[9]) if len(vals) > 9 else 0
         except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid value on CSV line {line_num}: {e}")
+            raise ValueError(f"Invalid numeric value on CSV line {line_num}: {e}")
+        name = vals[len(JOINT_FIELDS) + 1]
         trajectories.setdefault(traj_id, []).append(joints)
-    return trajectories
+        traj_names.setdefault(traj_id, name)
+    return trajectories, traj_names
 
 
 class TrajectoryServiceServer(Node):
@@ -64,12 +63,13 @@ class TrajectoryServiceServer(Node):
 
         # Load trajectories from CSV
         self.get_logger().info(f'Loading trajectories from {CSV_FILE}')
-        self.trajectories = load_trajectories(CSV_FILE)
+        self.trajectories, self.traj_names = load_trajectories(CSV_FILE)
         for tid, steps in self.trajectories.items():
-            self.get_logger().info(f'  Trajectory {tid}: {len(steps)} steps')
+            name = self.traj_names.get(tid, str(tid))
+            self.get_logger().info(f'  Trajectory {name}: {len(steps)} steps')
         self.get_logger().info(
             f'Loaded {len(self.trajectories)} trajectories: '
-            f'{sorted(self.trajectories.keys())}')
+            f'{[self.traj_names.get(tid, str(tid)) for tid in sorted(self.trajectories.keys())]}')
 
         # Callback group so client calls can be processed while a
         # service callback is in progress (avoids single-thread deadlock).
@@ -94,12 +94,14 @@ class TrajectoryServiceServer(Node):
 
     def handle_trajectory_select(self, request, response):
         traj_id = request.trajectory_id
+        traj_name = self.traj_names.get(traj_id, str(traj_id))
 
         if traj_id not in self.trajectories:
+            available = [self.traj_names.get(tid, str(tid)) for tid in sorted(self.trajectories.keys())]
             response.success = False
             response.message = (
-                f'Trajectory {traj_id} not found. '
-                f'Available: {sorted(self.trajectories.keys())}')
+                f'Trajectory {traj_name} not found. '
+                f'Available: {available}')
             self.get_logger().warn(response.message)
             return response
 
@@ -107,7 +109,7 @@ class TrajectoryServiceServer(Node):
         total = len(steps)
         delay = request.step_delay_sec
         self.get_logger().info(
-            f'Playing trajectory {traj_id} ({total} steps, '
+            f'Playing trajectory {traj_name} ({total} steps, '
             f'step_delay={delay:.2f}s)')
 
         for i, joints in enumerate(steps):
@@ -138,14 +140,14 @@ class TrajectoryServiceServer(Node):
             if not result.success:
                 response.success = False
                 response.message = (
-                    f'Trajectory {traj_id} failed at step {i + 1}/{total}: '
+                    f'Trajectory {traj_name} failed at step {i + 1}/{total}: '
                     f'{result.message}')
                 self.get_logger().warn(response.message)
                 return response
 
         response.success = True
         response.message = (
-            f'Trajectory {traj_id} completed successfully ({total} steps)')
+            f'Trajectory {traj_name} completed successfully ({total} steps)')
         self.get_logger().info(response.message)
         return response
 
