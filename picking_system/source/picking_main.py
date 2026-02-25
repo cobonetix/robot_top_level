@@ -10,7 +10,7 @@ import sys
 
 import ros_context
 from arm_init_calibrate import run_init_sequence
-from process_orders import process_orders
+from process_orders import process_all_orders
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
             ros_context.node.get_logger().error('Initialization sequence failed')
             return 1
 
-        process_orders(orders_file)
+        process_all_orders(orders_file)
     except KeyboardInterrupt:
         ros_context.node.get_logger().info('Interrupted by user')
     finally:

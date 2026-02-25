@@ -36,17 +36,20 @@ class JointCsvPlayer(Node):
 
 
 def load_csv(filepath):
-    """Load joint positions from a CSV file.
+    """Load joint positions from a CSV file, indexed by the last column value.
 
-    Expected column order: l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4
-    First row is skipped (header).
+    Expected column order: l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4, <name>
+    First row is skipped (header). Returns a dict mapping name -> list of joint dicts.
     """
-    rows = []
+    positions = {}
     with open(filepath) as f:
         content = f.read().replace('"', '')
     lines = content.strip().splitlines()
     for line_num, line in enumerate(lines[1:], start=2):
-        vals = line.split(',')
+        vals = [v.strip() for v in line.split(',')]
+        if len(vals) < len(JOINT_FIELDS) + 1:
+            raise ValueError(f"Not enough columns on CSV line {line_num}: expected {len(JOINT_FIELDS) + 1}, got {len(vals)}")
+        key = vals[-1]
         try:
             joints = {}
             for field, val in zip(JOINT_FIELDS, vals):
@@ -56,24 +59,35 @@ def load_csv(filepath):
                 joints[field] = v
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid numeric value on CSV line {line_num}: {e}")
-        rows.append(joints)
-    return rows
+        positions.setdefault(key, []).append(joints)
+    return positions
 
 
 def main():
     parser = argparse.ArgumentParser(description='Play joint positions from a CSV file')
     parser.add_argument('csv_file', nargs='?', default='trajectory1.csv', help='Path to CSV file (default: trajectory1.csv)')
     parser.add_argument('--rate', type=float, default=2.0, help='Commands per second (default: 1.0)')
+    parser.add_argument('--name', type=str, default=None, help='Play only the trajectory with this name (default: play all)')
     cli_args = parser.parse_args()
 
     period = 1.0 / cli_args.rate
 
-    rows = load_csv(cli_args.csv_file)
-    if not rows:
+    positions = load_csv(cli_args.csv_file)
+    if not positions:
         print('CSV file contains no data rows.')
         return
 
-    print(f'Loaded {len(rows)} joint positions from {cli_args.csv_file}')
+    if cli_args.name is not None:
+        if cli_args.name not in positions:
+            print(f"Trajectory '{cli_args.name}' not found. Available: {list(positions.keys())}")
+            return
+        rows = positions[cli_args.name]
+        label = cli_args.name
+    else:
+        rows = [joints for group in positions.values() for joints in group]
+        label = 'all'
+
+    print(f'Loaded {len(rows)} joint positions ({label}) from {cli_args.csv_file}')
     print(f'Rate: {cli_args.rate} Hz (one command every {period:.2f}s)')
 
     rclpy.init()
