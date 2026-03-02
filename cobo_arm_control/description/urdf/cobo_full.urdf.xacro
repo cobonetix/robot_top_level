@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Combined URDF: cobo arm system + diff drive base
+     Base + arm macros/properties come from cobo_base.macro.xacro (which includes bob4.macro.xacro).
+     Includes ros2_control blocks for both the arm hardware and the diff drive hardware. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cobo_full">
+
+
+  <!-- Base link + wheels (continuous joints for diff drive controller) -->
+  <xacro:include filename="cobo_base.macro.xacro" />
+
+  <!-- ros2_control: diff drive hardware -->
+  <xacro:include filename="$(find diffdrive_arduino)/urdf/diffbot.ros2_control_v5.xacro" />
+
+  
+  <!-- ros2_control: diff drive (diffdrive_arduino/DiffDriveArduinoHardware plugin).
+       prefix="" so it references left_wheel_joint / right_wheel_joint defined above. -->
+  <xacro:diffbot_ros2_control name="DiffBot" prefix=""/>
+
+</robot>

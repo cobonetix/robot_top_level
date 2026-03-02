@@ -65,7 +65,7 @@ def load_csv(filepath):
 
 def main():
     parser = argparse.ArgumentParser(description='Play joint positions from a CSV file')
-    parser.add_argument('csv_file', nargs='?', default='trajectory1.csv', help='Path to CSV file (default: trajectory1.csv)')
+    parser.add_argument('csv_file', nargs='?', default='data/trajectories.csv', help='Path to CSV file (default: trajectory1.csv)')
     parser.add_argument('--rate', type=float, default=2.0, help='Commands per second (default: 1.0)')
     parser.add_argument('--name', type=str, default=None, help='Play only the trajectory with this name (default: play all)')
     cli_args = parser.parse_args()
