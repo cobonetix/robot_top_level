@@ -42,16 +42,10 @@ hardware_interface::CallbackReturn DiffDriveArduinoHardware::on_init(
   cfg_.loop_rate = std::stof(info_.hardware_parameters["loop_rate"]);
   cfg_.device = info_.hardware_parameters["device"];
   cfg_.baud_rate = std::stoi(info_.hardware_parameters["baud_rate"]);
-  std::cout << "2" << std::endl;
   cfg_.timeout_ms = std::stoi(info_.hardware_parameters["timeout_ms"]);
-  std::cout << "3" << std::endl;
   cfg_.enc_counts_per_rev = std::stoi(info_.hardware_parameters["enc_counts_per_rev"]);
 
-  std::cout << "3a" << std::endl;
- 
-cfg_.fakeMode = std::stoi(info_.hardware_parameters["fake_mode"]);
-
-  std::cout << "4" << std::endl;
+  cfg_.fakeMode = std::stoi(info_.hardware_parameters["fake_mode"]);
 
   if (info_.hardware_parameters.count("pid_p") > 0)
   {
@@ -64,8 +58,7 @@ cfg_.fakeMode = std::stoi(info_.hardware_parameters["fake_mode"]);
   {
     RCLCPP_INFO(rclcpp::get_logger("DiffDriveArduinoHardware"), "PID values not supplied, using defaults.");
   }
-  std::cout << "5" << std::endl;
- 
+  
 
   wheel_l_.setup(cfg_.left_wheel_name, cfg_.enc_counts_per_rev);
   wheel_r_.setup(cfg_.right_wheel_name, cfg_.enc_counts_per_rev);

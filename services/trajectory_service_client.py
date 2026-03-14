@@ -26,8 +26,8 @@ class TrajectoryServiceClient(Node):
 
 def main():
     parser = argparse.ArgumentParser(description='Test client for trajectory_select service')
-    parser.add_argument('trajectory_id', nargs='?', type=int, default=None,
-                        help='Trajectory ID to request (omit for interactive mode)')
+    parser.add_argument('trajectory_id', nargs='?', type=str, default=None,
+                        help='Trajectory name to request (omit for interactive mode)')
     parser.add_argument('--delay', type=float, default=0.0,
                         help='Seconds to wait between each trajectory step (default: 0)')
     cli_args = parser.parse_args()
@@ -47,17 +47,14 @@ def main():
         # Interactive mode
         while True:
             try:
-                user_input = input('Enter trajectory ID (or q to quit): ').strip()
+                user_input = input('Enter trajectory name (or q to quit): ').strip()
                 if user_input.lower() == 'q':
                     break
-                tid = int(user_input)
-                print(f'Requesting trajectory {tid} (step_delay={cli_args.delay}s)')
-                future = client.send_request(tid, cli_args.delay)
+                print(f'Requesting trajectory "{user_input}" (step_delay={cli_args.delay}s)')
+                future = client.send_request(user_input, cli_args.delay)
                 rclpy.spin_until_future_complete(client, future)
                 result = future.result()
                 print(f'Response: success={result.success}, message={result.message}')
-            except ValueError:
-                print('Invalid input. Enter an integer trajectory ID.')
             except KeyboardInterrupt:
                 break
 

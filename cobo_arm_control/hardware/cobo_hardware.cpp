@@ -31,15 +31,17 @@ namespace cobo_arm_control
 {
 
 // Constants for initialization
+
 constexpr double INITIAL_JOINT_POSITION = 0.157;
 constexpr double INITIAL_JOINT_VELOCITY = 0.5;
 constexpr double DEFAULT_TOWER_RIGHT_HEIGHT = 0.8;
 constexpr double DEFAULT_TOWER_LEFT_HEIGHT = 1.0;
 constexpr int INITIAL_ARM_ANGLE_DEGREES = 180;
-constexpr std::chrono::seconds INIT_DELAY{2};
+constexpr std::chrono::seconds INIT_DELAY{1};
 constexpr std::chrono::seconds ARM_MOVEMENT_DELAY{3};
 constexpr std::chrono::seconds CALIBRATION_DELAY{2};
 constexpr std::chrono::seconds FINAL_INIT_DELAY{5};
+
 
 CallbackReturn RobotSystem::on_init(const hardware_interface::HardwareInfo & info)
 {
@@ -272,7 +274,7 @@ CallbackReturn RobotSystem::on_activate(const rclcpp_lifecycle::State & previous
 return_type RobotSystem::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
 {
   double val1, val2;
-
+ // RCLCPP_INFO(rclcpp::get_logger("cobo_rd"), "rd");
   TowerComms.read_tower_info(val1, val2, hw_states_);
 
   joint_position_[LEFT_ARM_JOINT_OFFSET + 0] = val1;
@@ -309,7 +311,9 @@ return_type RobotSystem::read(const rclcpp::Time & /*time*/, const rclcpp::Durat
 
 return_type RobotSystem::write(const rclcpp::Time &, const rclcpp::Duration &)
 {
-  TowerComms.set_tower_position(
+   // RCLCPP_INFO(rclcpp::get_logger("cobo_wt"), "wt");
+
+    TowerComms.set_tower_position(
     joint_position_command_[LEFT_ARM_JOINT_OFFSET + 0],
     joint_position_command_[RIGHT_ARM_JOINT_OFFSET + 0]);
 

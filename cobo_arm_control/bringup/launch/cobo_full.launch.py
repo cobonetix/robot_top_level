@@ -158,8 +158,8 @@ def generate_launch_description():
             target_action=joint_state_broadcaster_spawner,
             on_exit=[
                 diffbot_controller_spawner,
-           #     cobo_controller_spawner,
-           #     gpio_controller_spawner,
+                cobo_controller_spawner,
+                gpio_controller_spawner,
             ],
         )
     )
@@ -208,16 +208,15 @@ def generate_launch_description():
     return LaunchDescription(
         declared_arguments + [
             robot_state_publisher,
-           # robot_state_pub_node,
-
+          
             control_node,
             joint_state_broadcaster_spawner,
             delay_controllers_after_jsb,
           #  rviz_node,
-          #  joint_service_server,
-          #  pose_service_server,
-          #  gpio_service_server,
-          #  gpio_status_server,
-          #  trajectory_service_server,
+            joint_service_server,
+            pose_service_server,
+            gpio_service_server,
+            gpio_status_server,
+            trajectory_service_server,
         ]
     )

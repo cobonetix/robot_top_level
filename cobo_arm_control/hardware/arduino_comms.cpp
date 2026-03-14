@@ -5,6 +5,13 @@
 namespace cobo_arm_control
 {
 
+ArduinoComms *leftComms;
+ArduinoComms *rightComms;
+
+int Min_J2_For_Calibration = 100; // degrees, below this we cannot calibrate the tower
+int Max_J2_For_Calibration = 250; // degrees, if the arm is above this angle, we can calibrate the tower
+
+
 // Utility functions
 LibSerial::BaudRate convert_baud_rate(int baud_rate)
 {
@@ -48,6 +55,7 @@ bool floats_equal(double a, double b, double epsilon)
   return std::fabs(a - b) < epsilon;
 }
 
+
 // ArduinoComms class implementation
 ArduinoComms::ArduinoComms()
   : logger_(rclcpp::get_logger("ArduinoComms")),
@@ -59,8 +67,10 @@ ArduinoComms::ArduinoComms()
     previous_tower_cmd_2_(-1.0),
     timeout_ms_(0),
     rightArm_(true)
-{
+ {
   last_hw_commands_.assign(CMD_LEFT_DOOR_POSITION + 1, 0.0);
+  leftComms = this;
+  rightComms = this;
 }
 
 void ArduinoComms::set_logger(rclcpp::Logger logger)
@@ -227,8 +237,22 @@ void ArduinoComms::calibrate_tower()
 {
   if (logger_initialized_)
   {
-    RCLCPP_INFO(logger_, "Calibrating tower");
+    RCLCPP_INFO(logger_, "Calibrating tower: %d %d", rightComms->last_j2_, leftComms->last_j2_);
   }
+  // make sure the arms are not in the way
+
+  if (rightComms->last_j2_ < Min_J2_For_Calibration || rightComms->last_j2_ > Max_J2_For_Calibration)
+  {
+    RCLCPP_ERROR(logger_, "Right arm J2 angle is %d degrees, which may be out of calibration range. Tower calibration may fail.", rightComms->last_j2_);
+    return;
+  }
+
+  if (leftComms->last_j2_ < Min_J2_For_Calibration || leftComms->last_j2_ > Max_J2_For_Calibration)
+  {
+    RCLCPP_ERROR(logger_, "Left arm J2 angle is %d degrees, which may be out of calibration range. Tower calibration may fail.", leftComms->last_j2_);
+    return;
+  }
+
 
   std::stringstream ss;
   ss << "c";
@@ -262,7 +286,7 @@ void ArduinoComms::set_arm_position(double val_1, double val_2, double val_3)
   previous_arm_cmd_2_ = val_2;
   previous_arm_cmd_3_ = val_3;
 
-  if (1) //logger_initialized_)
+  if (logger_initialized_)
   {
     const char* arm_name = rightArm_ ? "right" : "left";
     RCLCPP_INFO(logger_, "Set %s arm pos: %.3f %.3f %.3f", arm_name, val_1, val_2, val_3);
@@ -344,9 +368,15 @@ void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
 void ArduinoComms::read_arm_info(double &val_1, double &val_2, double &val_3, std::vector<double> &hw_states)
 {
   int j1, j2, j3, p1, p2, p3, p4, p5,p6,p7;
-  
+  //RCLCPP_INFO(logger_, "RAI %s", rightArm_ ? "r" : "l");
+
   std::string response = send_msg("s\r");
   const int ret = std::sscanf(response.c_str(), "%d%d%d%d%d%d%d%d%d%d", &j1, &j2, &j3, &p1, &p2, &p3, &p4, &p5, &p6, &p7);
+
+  last_j2_ = j1;
+  last_j3_ = j2;
+  last_j4_ = j3;
+
 
   val_1 = degrees_to_radians(j1);
   val_2 = degrees_to_radians(j2);
@@ -539,6 +569,8 @@ if (logger_initialized_)
   ss << "a l";
   send_msg(ss.str(), true);
   rightArm_ = false;
+  leftComms = this;
+
 }
 
 }  // namespace cobo_arm_control

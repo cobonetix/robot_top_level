@@ -11,7 +11,7 @@ import random
 from cobonetix_interfaces.srv import GpioCommand
 
 import ros_context
-from picking_utils import send_joint_request, wait_for_arm_idle
+from picking_utils import send_joint_request, send_trajectory_request, wait_for_arm_idle
 
 
 def set_all_joints(j1_position: float = 1.0, other_position: float = 3.14) -> bool:
@@ -127,10 +127,10 @@ def run_init_sequence() -> bool:
 
     # Step 1: Set joint 1 to 0 and other joints to 3.14 radians
     logger.info('Step 1: Setting joint 1 to 0, other joints to 3.14 radians')
-    if not set_all_joints(0.0, random.uniform(3.0, 3.2)):
-        logger.error('Failed to set joint positions. Aborting.')
+    if not send_trajectory_request("START_ARMS", 0.0):
+        logger.error('Failed to set initial joint positions.')
         return False
-
+    
     # Step 2: Calibrate the tower
     logger.info('Step 2: Calibrating tower')
     if not calibrate_tower():
@@ -141,7 +141,7 @@ def run_init_sequence() -> bool:
         logger.error('Tower did not become idle after calibration.')
         return False
 
-    # Lock the arms after calibration
+    # Steo 3: Lock the arms after calibration
     logger.info('Locking arms after calibration')
     if not lock_arms():
         logger.error('Failed to lock arms.')
@@ -154,14 +154,24 @@ def run_init_sequence() -> bool:
         logger.error('Left arm did not become idle after locking.')
         return False
 
-    # Step 3: Set joint 1 on both arms to 1.0 radians
-    logger.info('Step 3: Setting joint 1 on both arms to 1.0 radians')
-    if not set_joint1_both_arms(1.0):
-        logger.error('Failed to set joint 1 positions.')
+    # Step 4: Set joint 1 on both arms to 0.7 meters
+    logger.info('Step 4: Setting joint 1 on both arms to 0.7 meters')
+    if not send_trajectory_request("START_TOWERS", 0.0):
+        logger.error('Failed to set initial joint positions.')
         return False
 
     if not wait_for_arm_idle('tower', 't_s_moving'):
         logger.error('Tower did not become idle after setting joint 1.')
+        return False
+
+    # Step 5: tuck the arms
+    logger.info('Step 5: Tucking arms')
+    if not send_trajectory_request("TUCK", 0.0):
+        logger.error('Failed to tuck arms.')
+        return False
+
+    if not wait_for_arm_idle('tower', 't_s_moving'):
+        logger.error('Tower did not become idle after tucking.')
         return False
 
     # Display actual joint positions

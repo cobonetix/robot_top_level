@@ -188,11 +188,11 @@ def _navigate_feedback_callback(feedback_msg):
     )
 
 
-def send_trajectory_request(trajectory_id: int, step_delay_sec: float = 0.0) -> bool:
+def send_trajectory_request(trajectory_name: str, step_delay_sec: float = 0.0) -> bool:
     """Send a trajectory request and block until the result is received.
 
     Args:
-        trajectory_id: ID of the trajectory to execute
+        trajectory_name: Name   of the trajectory to execute
         step_delay_sec: Seconds to wait between each trajectory step
 
     Returns:
@@ -201,10 +201,10 @@ def send_trajectory_request(trajectory_id: int, step_delay_sec: float = 0.0) -> 
     logger = ros_context.node.get_logger()
 
     request = TrajectorySelect.Request()
-    request.trajectory_id = trajectory_id
+    request.trajectory_id = trajectory_name
     request.step_delay_sec = step_delay_sec
 
-    logger.info(f'Sending trajectory request: id={trajectory_id}, delay={step_delay_sec}')
+    logger.info(f'Sending trajectory request: id={trajectory_name}, delay={step_delay_sec}')
 
     future = ros_context.trajectory_client.call_async(request)
     rclpy.spin_until_future_complete(ros_context.node, future)

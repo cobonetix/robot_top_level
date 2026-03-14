@@ -71,7 +71,7 @@ public:
   void disconnect();
   bool connected() const;
 
-  std::string send_msg(const std::string &msg_to_send, bool print_output = false, uint32_t t_out = 0);
+  std::string send_msg(const std::string &msg_to_send, bool print_output = false, uint32_t t_out = 1000);
   void send_empty_msg();
 
   // Tower operations
@@ -110,6 +110,9 @@ private:
   double previous_arm_cmd_3_;
   double previous_tower_cmd_1_;
   double previous_tower_cmd_2_;
+  int last_j2_;
+  int last_j3_;
+  int last_j4_;
 
   std::vector<double> last_hw_commands_;
 

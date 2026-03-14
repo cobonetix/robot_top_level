@@ -26,12 +26,12 @@ def load_trajectories(filepath):
     next 8 columns are joint values, last column is the trajectory name:
         id, l_j1, l_j2, l_j3, l_j4, r_j1, r_j2, r_j3, r_j4, name
     First row is a header and is skipped.
-    Multiple rows may share the same ID — they form the ordered steps
+    Multiple rows may share the same name — they form the ordered steps
     of that trajectory.
     Degree-valued fields (l_j2-l_j4, r_j2-r_j4) are converted to radians.
+    Returns a dict keyed by trajectory name.
     """
     trajectories = {}
-    traj_names = {}
     with open(filepath) as f:
         content = f.read().replace('"', '')
     lines = content.strip().splitlines()
@@ -42,7 +42,6 @@ def load_trajectories(filepath):
                 f"CSV line {line_num}: expected at least {len(JOINT_FIELDS) + 2} columns "
                 f"(id + 8 joints + name), got {len(vals)}")
         try:
-            traj_id = int(vals[0])
             joints = {}
             for field, val in zip(JOINT_FIELDS, vals[1:]):
                 v = float(val)
@@ -52,9 +51,8 @@ def load_trajectories(filepath):
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid numeric value on CSV line {line_num}: {e}")
         name = vals[len(JOINT_FIELDS) + 1]
-        trajectories.setdefault(traj_id, []).append(joints)
-        traj_names.setdefault(traj_id, name)
-    return trajectories, traj_names
+        trajectories.setdefault(name, []).append(joints)
+    return trajectories
 
 
 class TrajectoryServiceServer(Node):
@@ -63,13 +61,12 @@ class TrajectoryServiceServer(Node):
 
         # Load trajectories from CSV
         self.get_logger().info(f'Loading trajectories from {CSV_FILE}')
-        self.trajectories, self.traj_names = load_trajectories(CSV_FILE)
-        for tid, steps in self.trajectories.items():
-            name = self.traj_names.get(tid, str(tid))
+        self.trajectories = load_trajectories(CSV_FILE)
+        for name, steps in self.trajectories.items():
             self.get_logger().info(f'  Trajectory {name}: {len(steps)} steps')
         self.get_logger().info(
             f'Loaded {len(self.trajectories)} trajectories: '
-            f'{[self.traj_names.get(tid, str(tid)) for tid in sorted(self.trajectories.keys())]}')
+            f'{sorted(self.trajectories.keys())}')
 
         # Callback group so client calls can be processed while a
         # service callback is in progress (avoids single-thread deadlock).
@@ -93,19 +90,18 @@ class TrajectoryServiceServer(Node):
         self.get_logger().info('trajectory_select service is ready')
 
     def handle_trajectory_select(self, request, response):
-        traj_id = request.trajectory_id
-        traj_name = self.traj_names.get(traj_id, str(traj_id))
+        traj_name = request.trajectory_id
 
-        if traj_id not in self.trajectories:
-            available = [self.traj_names.get(tid, str(tid)) for tid in sorted(self.trajectories.keys())]
+        if traj_name not in self.trajectories:
+            available = sorted(self.trajectories.keys())
             response.success = False
             response.message = (
-                f'Trajectory {traj_name} not found. '
+                f'Trajectory "{traj_name}" not found. '
                 f'Available: {available}')
             self.get_logger().warn(response.message)
             return response
 
-        steps = self.trajectories[traj_id]
+        steps = self.trajectories[traj_name]
         total = len(steps)
         delay = request.step_delay_sec
         self.get_logger().info(
