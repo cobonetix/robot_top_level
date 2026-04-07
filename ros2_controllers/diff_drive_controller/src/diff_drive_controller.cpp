@@ -140,7 +140,7 @@ controller_interface::return_type DiffDriveController::update(
 
   if ((linear_command != 0) || (angular_command!= 0))
   {
-     RCLCPP_INFO(logger, "lin/ang in %f %f", linear_command, angular_command);
+     RCLCPP_INFO(logger, "lin/ang cmd in %f %f", linear_command, angular_command);
   }
 
   previous_update_timestamp_ = time;
@@ -149,8 +149,7 @@ controller_interface::return_type DiffDriveController::update(
   const double wheel_separation = params_.wheel_separation_multiplier * params_.wheel_separation;
   const double left_wheel_radius = params_.left_wheel_radius_multiplier * params_.wheel_radius;
   const double right_wheel_radius = params_.right_wheel_radius_multiplier * params_.wheel_radius;
-
-
+         
   if (params_.open_loop)
   {
     odometry_.updateOpenLoop(linear_command, angular_command, time);
@@ -192,7 +191,7 @@ controller_interface::return_type DiffDriveController::update(
   }
 
   tf2::Quaternion orientation;
-  orientation.setRPY(0.0, 0.0, odometry_.getHeading());
+  orientation.setRPY(0.0, 0.0, odometry_.getHeading() );
 
   bool should_publish = false;
   try
@@ -218,10 +217,12 @@ controller_interface::return_type DiffDriveController::update(
       odometry_message.header.stamp = time;
       odometry_message.pose.pose.position.x = odometry_.getX();
       odometry_message.pose.pose.position.y = odometry_.getY();
+      RCLCPP_INFO(logger, "pos x %f ", odometry_message.pose.pose.position.x);
       odometry_message.pose.pose.orientation.x = orientation.x();
       odometry_message.pose.pose.orientation.y = orientation.y();
       odometry_message.pose.pose.orientation.z = orientation.z();
       odometry_message.pose.pose.orientation.w = orientation.w();
+      RCLCPP_INFO(logger, "odom z %f odom w %f", odometry_message.pose.pose.orientation.z, odometry_message.pose.pose.orientation.w);
       odometry_message.twist.twist.linear.x = odometry_.getLinear();
       odometry_message.twist.twist.angular.z = odometry_.getAngular();
       realtime_odometry_publisher_->unlockAndPublish();
@@ -253,7 +254,7 @@ controller_interface::return_type DiffDriveController::update(
 
   if ((linear_command != 0) || (angular_command!= 0))
   {
-     RCLCPP_INFO(logger, "lin/ang cal %f %f", linear_command, angular_command);
+     RCLCPP_INFO(logger, "lin/ang spd cmds %f %f", linear_command, angular_command);
   }
 
   //    Publish limited velocity
@@ -273,7 +274,7 @@ controller_interface::return_type DiffDriveController::update(
 
   if ((velocity_left != 0) || (velocity_right!= 0))
   {
-     RCLCPP_INFO(logger, "l/r vel %f %f", velocity_left, velocity_right);
+     RCLCPP_INFO(logger, "l/r cmd vel %f %f", velocity_left, velocity_right);
   }
 
   // Set wheels velocities:

@@ -162,6 +162,9 @@ hardware_interface::CallbackReturn DiffDriveArduinoHardware::on_configure(
   comms_.connect(cfg_.device, cfg_.baud_rate, cfg_.timeout_ms);
   RCLCPP_INFO(rclcpp::get_logger("DiffDriveArduinoHardware"), "Successfully configured!");
   std::this_thread::sleep_for(std::chrono::seconds(2));   // let things initialize
+
+  comms_.clear_encoder_values();
+
   RCLCPP_INFO(rclcpp::get_logger("DiffDriveArduinoHardware"), "Successfully configured!");
  
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -242,6 +245,8 @@ hardware_interface::return_type DiffDriveArduinoHardware::read(
 
   double delta_seconds = period.seconds();
 
+  //RCLCPP_DEBUG(rclcpp::get_logger("Read"), "encoder values %lf %i %i ", delta_seconds, wheel_l_.enc, wheel_r_.enc);
+
   double pos_prev = wheel_l_.pos;
   wheel_l_.pos = wheel_l_.calc_enc_angle();
   wheel_l_.vel = (wheel_l_.pos - pos_prev) / delta_seconds;
@@ -250,7 +255,8 @@ hardware_interface::return_type DiffDriveArduinoHardware::read(
   wheel_r_.pos = wheel_r_.calc_enc_angle();
   wheel_r_.vel = (wheel_r_.pos - pos_prev) / delta_seconds;
 
-  //RCLCPP_INFO(rclcpp::get_logger("Read"), "read encoder %lf",wheel_l_.pos);
+  //RCLCPP_DEBUG(rclcpp::get_logger("Read"), "read position   %lf %lf ", wheel_l_.pos, wheel_r_.pos);
+ // RCLCPP_DEBUG(rclcpp::get_logger("Read"), "read velocities %lf %lf", wheel_l_.vel, wheel_r_.vel);
 
   return hardware_interface::return_type::OK;
 }

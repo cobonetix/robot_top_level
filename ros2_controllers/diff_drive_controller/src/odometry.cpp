@@ -17,6 +17,7 @@
  */
 
 #include "diff_drive_controller/odometry.hpp"
+#include <iostream>
 
 namespace diff_drive_controller
 {
@@ -47,14 +48,16 @@ void Odometry::init(const rclcpp::Time & time)
 
 bool Odometry::update(double left_pos, double right_pos, const rclcpp::Time & time)
 {
+std::cout << "Updating odometry with left pos " << left_pos << " and right pos " << right_pos
+            << " at time " << time.seconds() << std::endl;
+            
   // We cannot estimate the speed with very small time intervals:
   const double dt = time.seconds() - timestamp_.seconds();
   if (dt < 0.0001)
   {
     return false;  // Interval too small to integrate with
   }
-
-  // Get current wheel joint positions:
+    // Get current wheel joint positions:
   const double left_wheel_cur_pos = left_pos * left_wheel_radius_;
   const double right_wheel_cur_pos = right_pos * right_wheel_radius_;
 
@@ -84,8 +87,10 @@ bool Odometry::updateFromVelocity(double left_vel, double right_vel, const rclcp
   const double angular = (right_vel - left_vel) / wheel_separation_;
 
   // Integrate odometry:
+  //std::cout << "linear " << linear << " angular " << angular << std::endl;
+ 
   integrateExact(linear, angular);
-
+ 
   timestamp_ = time;
 
   // Estimate speeds using a rolling mean to filter them out:
@@ -103,6 +108,8 @@ void Odometry::updateOpenLoop(double linear, double angular, const rclcpp::Time 
   /// Save last linear and angular velocity:
   linear_ = linear;
   angular_ = angular;
+
+  //std::cout << "Updating open loop odometry with linear " << linear << " and angular " << angular  << " at time " << time.seconds() << std::endl;
 
   /// Integrate odometry:
   const double dt = time.seconds() - timestamp_.seconds();
@@ -144,18 +151,25 @@ void Odometry::integrateRungeKutta2(double linear, double angular)
 
 void Odometry::integrateExact(double linear, double angular)
 {
+  std::cout << "Integrating odometry with linear " << linear << " and angular " << angular << std::endl;
   if (fabs(angular) < 1e-6)
+ 
   {
+    //std::cout << "Angular velocity is very small, using Runge-Kutta 2nd order integration to avoid numerical issues." << std::endl; 
+
     integrateRungeKutta2(linear, angular);
   }
   else
   {
+
     /// Exact integration (should solve problems when angular is zero):
     const double heading_old = heading_;
     const double r = linear / angular;
     heading_ += angular;
     x_ += r * (sin(heading_) - sin(heading_old));
     y_ += -r * (cos(heading_) - cos(heading_old));
+    std::cout << "AV large enuf,  exact integ " << heading_old << " " << heading_ << " " << x_ << " " << y_ << std::endl;
+
   }
 }
 

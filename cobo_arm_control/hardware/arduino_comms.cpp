@@ -239,6 +239,8 @@ void ArduinoComms::calibrate_tower()
   {
     RCLCPP_INFO(logger_, "Calibrating tower: %d %d", rightComms->last_j2_, leftComms->last_j2_);
   }
+
+#ifdef xx
   // make sure the arms are not in the way
 
   if (rightComms->last_j2_ < Min_J2_For_Calibration || rightComms->last_j2_ > Max_J2_For_Calibration)
@@ -253,6 +255,7 @@ void ArduinoComms::calibrate_tower()
     return;
   }
 
+#endif
 
   std::stringstream ss;
   ss << "c";

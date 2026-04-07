@@ -90,7 +90,7 @@ def send_joint_request(left: tuple[float, float, float, float],
 
 
 def send_navigate_goal(nav_command: str, target_upc: str,
-                       timeout_sec: float = 30.0) -> str | None:
+                       timeout_sec: float = 90.0) -> str | None:
     """Send a navigate goal and block until the result is received.
 
     Args:

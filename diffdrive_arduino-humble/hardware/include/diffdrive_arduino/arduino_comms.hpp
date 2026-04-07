@@ -109,6 +109,11 @@ public:
     send_msg(ss.str());
   }
 
+  void clear_encoder_values()
+  {
+    send_msg("r\r");
+  }
+
   void set_pid_values(int k_p, int k_d, int k_i, int k_o)
   {
     std::stringstream ss;

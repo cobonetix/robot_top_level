@@ -10,7 +10,7 @@ import sys
 
 import ros_context
 from arm_init_calibrate import run_init_sequence
-from process_orders import do_pick_test, process_all_orders
+from process_orders import do_pick_test, process_all_orders,test_move
 
 processOrders = False
 pickUpc = "000000000000" # UPC of item to pick for test mode, not used if processOrders is True
@@ -34,7 +34,7 @@ def main():
         if processOrders:
             process_all_orders(orders_file)
         else:
-            do_pick_test(pickUpc)
+            test_move()
 
     except KeyboardInterrupt:
         ros_context.node.get_logger().info('Interrupted by user')

@@ -81,7 +81,7 @@ def init(args=None):
         node.get_logger().info('trajectory_select service not available, waiting...')
     node.get_logger().info('Connected to trajectory_select service')
 
-    return
+    #return
     
     node.get_logger().info('Waiting for navigate action server...')
     while not navigate_client.wait_for_server(timeout_sec=1.0):

@@ -200,7 +200,7 @@ def process_all_orders(product_list: str) -> list[QuantitySku]:
 def test_move():
 
   while True:
-    result = send_navigate_goal('NUDGE', str( 0.3))
+    """ result = send_navigate_goal('NUDGE', str( 0.3))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Nudge result ')
@@ -208,24 +208,18 @@ def test_move():
     
     ros_context.node.get_logger().info(f'Nudge1 result: {result}')
 
-    result = send_navigate_goal('NUDGE', str( 0.2))
-
-    if result is None:
-        ros_context.node.get_logger().info(f'No Nudge result ')
-        return None
-    
-    ros_context.node.get_logger().info(f'Nudge2 result: {result}')
+    """
 
 
-    result = send_navigate_goal('ROTATE', str(90))
+    result = send_navigate_goal('ROTATE', str(45))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Rotate result ')
         return None
 
     ros_context.node.get_logger().info(f'Rotate result1: {result}')
-    
-    result = send_navigate_goal('ROTATE', str(-90))
+
+    result = send_navigate_goal('ROTATE', str(-45))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Rotate2 result ')
@@ -237,7 +231,7 @@ def test_move():
 def fetch_item(item: QuantitySku):
     """
     Fetch an item using the navigation system.
-
+ 
     Args:
         item: QuantitySku object containing SKU and quantity
 
@@ -258,7 +252,7 @@ def fetch_item(item: QuantitySku):
 
     ros_context.node.get_logger().info(f'Nudging and rotating arm for SKU {item.sku}')
 
-    result = send_navigate_goal('NUDGE', str( 0.6))
+    result = send_navigate_goal('NUDGE', str( 0.3))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Nudge result for SKU {item.sku}')
@@ -266,7 +260,7 @@ def fetch_item(item: QuantitySku):
     
     ros_context.node.get_logger().info(f'Nudge result for SKU {item.sku}: {result}')
 
-    result = send_navigate_goal('ROTATE', str(-120))
+    result = send_navigate_goal('ROTATE', str(90))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Rotate result for SKU {item.sku}')
@@ -274,11 +268,47 @@ def fetch_item(item: QuantitySku):
 
     ros_context.node.get_logger().info(f'Rotate result for SKU {item.sku}: {result}')
 
+    # now extend arm to do view shelf
+
+    ros_context.node.get_logger().info('Moving arm so the camera faces shelf')
+    
+    if not send_trajectory_request("R_CAM_MID", 0.0):
+        ros_context.node.get_logger().error('Failed position camera')
+        return False
+
+    if not wait_for_arm_idle('right_arm', 'r_s_moving'):
+        ros_context.node.get_logger().error('Right arm did not become idle after locking.')
+        return False
+
+    ros_context.node.get_logger().info('execute pick action for UPC ' +  item.nav)
+
+    result = send_navigate_goal('PICK', str( 0.6))
+
+    if result is None:
+        ros_context.node.get_logger().info(f'No Pick result ')
+        return None
+
+    ros_context.node.get_logger().info(f'Pick result: {result}')
+
+    bounding_boxes = result.split(";")
+    for box in bounding_boxes:
+        ros_context.node.get_logger().info(f'Bounding box: {box}')
+
+        upc, x1, y1, x2, y2 = box.split(",")
+        ros_context.node.get_logger().info(f'UPC: {upc}, x1: {x1}, y1: {y1}, x2: {x2}, y2: {y2}')
+
+        if upc ==  item.nav:
+            ros_context.node.get_logger().info(f'Found target UPC {item.nav} in bounding box: {box}')
+            # Here you would add code to command the robot to pick the item based on the bounding box coordinates
+            
+
+
+
 def do_pick_test(pickUpc: str):
     ros_context.node.get_logger().info(f'doing picking test')
 
     ros_context.node.get_logger().info('Moving arm so the camera faces shelf')
-    if not send_trajectory_request("R_CAM_SID", 0.0):
+    if not send_trajectory_request("R_CAM_SIDE", 0.0):
         ros_context.node.get_logger().error('Failed position camera')
         return False
 

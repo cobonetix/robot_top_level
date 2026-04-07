@@ -164,12 +164,14 @@ def run_init_sequence() -> bool:
         logger.error('Tower did not become idle after setting joint 1.')
         return False
 
+    logger.info('Initialization sequence completed successfully!')
+    #return True
+
     # Step 5: tuck the arms
     logger.info('Step 5: Tucking arms')
     if not send_trajectory_request("TUCK", 0.0):
         logger.error('Failed to tuck arms.')
         return False
-
     if not wait_for_arm_idle('tower', 't_s_moving'):
         logger.error('Tower did not become idle after tucking.')
         return False
