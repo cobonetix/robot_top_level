@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from label_detect import decodeShelf
 
 
-image_width = 1280
-image_height = 720
+image_width = 1080
+image_height = 1920
 
 @dataclass
 class QuantitySku:
@@ -259,41 +259,53 @@ def navigate_to_item(item: QuantitySku):
         return False
     
     ros_context.node.get_logger().info(f'Navigation result for SKU {item.sku}: {result}')
-
+    
     # the target is probably at the left edge of image since we recognize it as soon as we see it. 
     
-    result = send_navigate_goal('NUDGE', str(0.2))
+    result = send_navigate_goal('NUDGE', str(0.3))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Nudge result for SKU {item.sku}')
         return False
     
     ros_context.node.get_logger().info(f'Nudge result for SKU {item.sku}: {result}')
-
-   
+    
     # first run pick using the nav camera to get an idea of how much we have to nudge
     
-    nudge_box = doPick(True, item.sku)
+    n = 2
+    while (n != 0):
+        n -= 1
+        nudge_box = doPick(True, item.sku)
     
-    if nudge_box is None:
-        ros_context.node.get_logger().info(f'No Nudge Pick result for SKU {item.sku}')
-        return False
+        if nudge_box is None:
+          ros_context.node.get_logger().info(f'No Nudge Pick result for SKU {item.sku}')
+          if n == 0:
+              return False
+        else:
+            ros_context.node.get_logger().info(f'Nudge Pick result for SKU {item.sku}: {nudge_box}')
+            break
 
     nudge_box_center_x = (nudge_box[0] + nudge_box[2]) / 2
 
     ros_context.node.get_logger().info(f'Nudge box center for SKU {item.sku}: ({nudge_box_center_x})')
 
-    if nudge_box_center_x < image_width / 2 - 50:
-        ros_context.node.get_logger().info(f'Nudging left for SKU {item.sku}')
-        nudge_amt  -0.3
-    else:
-        ros_context.node.get_logger().info(f'Nudging right for SKU {item.sku}')
-        nudge_amt = 0.3
+    nudge_amt = 0.3
+
+    if nudge_box_center_x < (image_width/3) or nudge_box_center_x > (2*image_width/3):
+        
+        # product is not in the middle 3rd of the image and so need to move the system a bit
+
+        if nudge_box_center_x < (image_width / 3):
+            ros_context.node.get_logger().info(f'Nudging left for SKU {item.sku}')
+            nudge_amt += 0.1
+        else:
+            ros_context.node.get_logger().info(f'Nudging right for SKU {item.sku}')
+            nudge_amt -= 0.1    
     
     result = send_navigate_goal('NUDGE', str(nudge_amt))
 
     if result is None:
-        ros_context.node.get_logger().info(f'No Nudge result for SKU {item.sku}')
+        ros_context.node.get_logger().info(f'Nudge failed for SKU {item.sku}')
         return False
     
     ros_context.node.get_logger().info(f'Nudge result for SKU {item.sku}: {result}')
@@ -311,13 +323,21 @@ def navigate_to_item(item: QuantitySku):
 
     # rotate to face the shelf
 
-    result = send_navigate_goal('ROTATE', str(-85))
+    result = send_navigate_goal('ROTATE', str(-80))
 
     if result is None:
         ros_context.node.get_logger().info(f'No Rotate result for SKU {item.sku}')
         return False
 
     ros_context.node.get_logger().info(f'Rotate result for SKU {item.sku}: {result}')
+
+    result = send_navigate_goal('NUDGE', str(-0.1))
+
+    if result is None:
+        ros_context.node.get_logger().info(f'Nudge failed for SKU {item.sku}')
+        return False
+
+    ros_context.node.get_logger().info(f'Nudge back a bit, result for SKU {item.sku}: {result}')
     return True
 
 
@@ -325,7 +345,7 @@ def position_for_pick(item):
                                      
     # now extend arm to do view shelf
 
-    trajReqString  = "R_CAM_MID_HI" if item.height > 4 else "R_CAM_MID_LOW"
+    trajReqString  = "R_CAM_MID_HI" if item.height < 4 else "R_CAM_MID_LOW"
 
     ros_context.node.get_logger().info('Moving arm so the camera faces shelf with trajectory: ' + trajReqString)
 

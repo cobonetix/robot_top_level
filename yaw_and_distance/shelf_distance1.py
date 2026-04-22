@@ -16,9 +16,8 @@ from similarity.utils.stat_utils import get_knn
 
 # ---- Distance calculation constants ----
 SHELF_REAL_HEIGHT_M = 0.0254   # 1 inch in metres
-FOCAL_LENGTH_MM   = 30.0     # 12mm equivalent full-frame focal length
+FOCAL_LENGTH_MM     = 12.0     # 12mm equivalent full-frame focal length
 SENSOR_WIDTH_MM     = 36.0     # full-frame sensor width (35mm equiv reference)
-IMG_WIDTH = 1920
 
 IMAGES_DIR = "/home/bob/dev_ws/label_detect/image/"
 
@@ -54,9 +53,7 @@ def calc_shelf_distance(products, img_width):
     avg_height_px =  float(heights[0]) if len(heights) == 1 else np.mean(heights)
 
     # Focal length in pixels: f_px = (f_mm / sensor_width_mm) * image_width_px
-
-    #f_px = (FOCAL_LENGTH_MM / SENSOR_WIDTH_MM) * img_width
-    f_px = (FOCAL_LENGTH_MM / SENSOR_WIDTH_MM) * IMG_WIDTH
+    f_px = (FOCAL_LENGTH_MM / SENSOR_WIDTH_MM) * img_width
 
     distance_m = (SHELF_REAL_HEIGHT_M * f_px) / avg_height_px
     return distance_m, avg_height_px
@@ -76,7 +73,7 @@ def init_detector(warmup_image_path=None):
     -------
     product_detector : DetectorOnnx
     """
-    weights = 'yaw_and_distance/data/weights/yolov5XL_MD3_grc300_192.onnx'
+    weights = 'data/weights/yolov5XL_MD3_grc300_192.onnx'
     input_size = 192
     iou_thres = [0.45, 0.45, 0.99]
     loc_conf = [0.45, 0.45, 0.4]
@@ -117,24 +114,13 @@ def get_shelf_distance(product_detector, image):
     """
     log = logging.getLogger(__name__)
 
-    # Crop 30% from left and 30% from right — keep the central 40% of the image
-
     detections, tdet, tnms = product_detector(image)
     log.info(f'Localiser times (ms): Image {tdet:.2f}, NMS {tnms:.2f}')
 
     products = [x for x in detections[0] if x['name'] == 'shelf']
-
-    # Keep only the single bbox whose vertical centre is closest to the image vertical centre
-    if len(products) > 1:
-        cropped_cy = image.shape[0] / 2.0
-        products = [min(products,
-                        key=lambda p: abs((p['bndbox']['ymin'] + p['bndbox']['ymax']) / 2.0 - cropped_cy))]
-        log.info(f'Kept 1 of {len(detections[0])} detections (closest to vertical centre)')
-
     n_prods = len(products)
 
     img_width = image.shape[1]
-
     distance_m, avg_height_px = calc_shelf_distance(products, img_width)
 
     if distance_m is not None:
@@ -164,12 +150,6 @@ def getShelfDistance():
     results = []
     for query_image in images_list:
         image = cv2.imread(query_image)
-        img_height_full, img_width_full = image.shape[:2]
-        crop_left  = int(img_width_full * 0.30)
-        crop_right = int(img_width_full * 0.70)
-        image = image[:, crop_left:crop_right]
-
-
 
         distance_m, avg_height_px, detections, tdet, tnms = get_shelf_distance(
             _product_detector, image)

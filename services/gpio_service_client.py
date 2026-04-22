@@ -25,7 +25,8 @@ class GpioServiceClient(Node):
             'v': 'r_c_vacuum_on (0/1)',
             'l': 'r_c_lock (0/1)',
             'e': 'r_c_reset (0/1)',
-            'd': 'l_c_door_position (0/1)',
+            'd': 'r_c_distance (0/1)',
+            'g': 'l_c_door_position (0/1)',
             'n': 'l_c_lock (0/1)',
             'f': 'l_c_reset (0/1)'
         }

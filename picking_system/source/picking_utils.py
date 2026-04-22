@@ -278,7 +278,7 @@ def doPick(navCamera, searchUpc):
 
         if upc == searchUpc:
             ros_context.node.get_logger().info(f'Found target UPC {searchUpc} in bounding box: {box}')
-            return [x1, y1, x2, y2]  # Return the bounding box coordinates for the matching UPC
+            return [int(x1), int(y1), int(x2), int(y2) ]  # Return the bounding box coordinates for the matching UPC
    
     ros_context.node.get_logger().info(f'Target UPC {searchUpc} not found in any bounding box')
     return None  # Return None if the target UPC was not found in any bounding box

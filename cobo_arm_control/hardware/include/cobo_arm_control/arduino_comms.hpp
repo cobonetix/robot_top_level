@@ -22,9 +22,10 @@ enum CommandIndices {
   CMD_RIGHT_ARM_ATTACH_MODE = 7,
   CMD_RIGHT_ARM_LOCK = 8,
   CMD_RIGHT_ARM_RESET = 9,
-  CMD_LEFT_DOOR_POSITION = 10,
-  CMD_LEFT_ARM_LOCK = 11,
-  CMD_LEFT_ARM_RESET = 12
+  CMD_RIGHT_ARM_GET_DISTANCE = 10,
+  CMD_LEFT_DOOR_POSITION = 11,
+  CMD_LEFT_ARM_LOCK = 12,
+  CMD_LEFT_ARM_RESET = 13
 
 };
 
@@ -43,9 +44,10 @@ enum StateIndices {
   ST_RIGHT_ARM_ATTACH_MODE = 10,
   ST_RIGHT_ARM_ATTACH_STATUS = 11,
   ST_RIGHT_ARM_VACUUM_LEVEL = 12,
-  ST_LEFT_ARM_MOVING = 13,
-  ST_LEFT_ARM_ERROR = 14,
-  ST_LEFT_DOOR_POSITION = 15,
+  ST_RIGHT_ARM_DISTANCE = 13,
+  ST_LEFT_ARM_MOVING = 14,
+  ST_LEFT_ARM_ERROR = 15,
+  ST_LEFT_DOOR_POSITION = 16,
 };
 
 // Constants
@@ -98,6 +100,7 @@ public:
   void set_left_arm();
   void arm_reset();
   void arm_lock(int onOff);
+  void arm_set_get_distance();
 
 
 private:

@@ -16,7 +16,8 @@ class GpioStatusClient(Node):
         # Available status fields by group
         self.status_fields = {
             'tower': ['t_s_moving', 't_s_error', 't_s_pump_on', 't_s_auto_mode', 't_s_valve_open', 't_s_pressure'],
-            'right_arm': ['r_s_moving', 'r_s_error', 'r_s_servo', 'r_s_vacuum_on', 'r_s_attach_mode', 'r_s_attach_status'],
+            'right_arm': ['r_s_moving', 'r_s_error', 'r_s_servo', 'r_s_vacuum_on', 'r_s_attach_mode', 'r_s_attach_status',
+                          'r_s_distance'],
             'left_arm': ['l_s_moving', 'l_s_error', 'l_s_door_position']
         }
 

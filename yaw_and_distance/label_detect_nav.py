@@ -97,7 +97,7 @@ publish_count = 0
 # Travel threshold for new picture
 travel_threshold = 0.5
     
-def decodeShelf():
+def decodeShelfNav():
                 global num_ranges
                 global ranges
                 global angle_min
@@ -119,7 +119,7 @@ def decodeShelf():
                 print("Running decode shelf")
 
                 for n in range(0,4): 
-                    img_raw = cv2.imread("/home/bob/dev_ws/label_detect/image/image.jpg")
+                    img_raw = cv2.imread("/home/bob/dev_ws/dev_ws/cam/images/image.jpg")
                     if (img_raw.shape is not  None):
                         break
                 img_height = img_raw.shape[0]
@@ -158,7 +158,7 @@ def decodeShelf():
                     img_height = img.shape[0]
                     img_width  = img.shape[1]
 
-                cv2.imwrite('/home/bob/dev_ws/yaw_detect/undistorted_image.jpg', img)
+                cv2.imwrite('undistorted_image.jpg', img)
                 # ---------------------------------------------------------
 
                 y1 = int(img_height/2) - 300
@@ -234,18 +234,20 @@ def decodeShelf():
                             current_row = [center]
                     rows.append(current_row)
 
-                    # Select the row whose average y-coordinate is closest to the image vertical centre
-                    mid_y   = img_height / 2.0
-                    top_row = min(rows, key=lambda r: abs(sum(c[1] for c in r) / len(r) - mid_y))
+                    # Select the row with 2+ labels closest to the image vertical centre
+                    mid_y        = img_height / 2.0
+                    eligible_rows = [r for r in rows if len(r) >= 2]
+
+                    if not eligible_rows:
+                        print("No row with 2+ labels found — cannot calculate yaw")
+                        cv2.imwrite('/home/bob/dev_ws/yaw_detect/label_bb_image.jpg', label_image)
+                        return "no row got selected"
+
+                    top_row = min(eligible_rows, key=lambda r: abs(sum(c[1] for c in r) / len(r) - mid_y))
 
                     print(f"Using middle row with {len(top_row)} label(s) (closest to y={mid_y:.0f})")
-          
-                    if len(top_row) < 2:
-                        # Single label: treat as horizontal
-                        cy_row = int(top_row[0][1])
-                        slope, intercept = 0.0, float(cy_row)
-                        return("only one label detected")
-                    else:
+
+                    if True:
                         xs = np.array([c[0] for c in top_row])
                         ys = np.array([c[1] for c in top_row])
                         slope, intercept = np.polyfit(xs, ys, 1)
@@ -268,7 +270,7 @@ def decodeShelf():
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                                 (0, 255, 0) if abs(angle_deg) < 1.0 else (0, 0, 255), 2)
 
-                    cv2.imwrite('/home/bob/dev_ws/yaw_detect/label_bb_image.jpg', label_image)
+                    cv2.imwrite('label_bb_image.jpg', label_image)
                     return [slope, angle_deg]
                 else:
                     print("Not enough labels detected (need at least 1)")
@@ -278,8 +280,7 @@ def decodeShelf():
 
 
 def main(args=None):
-
-    decodeShelf()
+    decodeShelfNav()
 
 if __name__ == '__main__':
         main()

@@ -20,7 +20,7 @@ FOCAL_LENGTH_MM   = 30.0     # 12mm equivalent full-frame focal length
 SENSOR_WIDTH_MM     = 36.0     # full-frame sensor width (35mm equiv reference)
 IMG_WIDTH = 1920
 
-IMAGES_DIR = "/home/bob/dev_ws/label_detect/image/"
+IMAGES_DIR = "/home/bob/dev_ws/cam/images/image/"
 
 # Module-level detector instance — initialised once on first call to getShelfDistance()
 _product_detector = None
@@ -76,7 +76,7 @@ def init_detector(warmup_image_path=None):
     -------
     product_detector : DetectorOnnx
     """
-    weights = 'yaw_and_distance/data/weights/yolov5XL_MD3_grc300_192.onnx'
+    weights = 'data/weights/yolov5XL_MD3_grc300_192.onnx'
     input_size = 192
     iou_thres = [0.45, 0.45, 0.99]
     loc_conf = [0.45, 0.45, 0.4]
@@ -147,7 +147,7 @@ def get_shelf_distance(product_detector, image):
     return distance_m, avg_height_px, detections, tdet, tnms
 
 
-def getShelfDistance():
+def getShelfDistanceNav(yaw):
     global _product_detector
 
     verbose = 0
@@ -168,6 +168,12 @@ def getShelfDistance():
         crop_left  = int(img_width_full * 0.30)
         crop_right = int(img_width_full * 0.70)
         image = image[:, crop_left:crop_right]
+        (h, w) = image.shape[:2]
+        center = (w // 2, h // 2)
+
+        # Rotate by yaw degrees
+        M = cv2.getRotationMatrix2D(center, yaw, 1.0)
+        image = cv2.warpAffine(image, M, (w, h))
 
 
 
@@ -220,8 +226,8 @@ def main():
 
     config = parser.parse_args()
     '''
-    
-    getShelfDistance()
+    yaw = 0.0
+    getShelfDistance(yaw)
 
 
 if __name__ == "__main__":

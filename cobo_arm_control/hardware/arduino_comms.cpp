@@ -345,6 +345,12 @@ void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
       last_hw_commands_[CMD_RIGHT_ARM_LOCK] = hw_commands[CMD_RIGHT_ARM_LOCK];
     }
 
+    if (!floats_equal(hw_commands[CMD_RIGHT_ARM_GET_DISTANCE], last_hw_commands_[CMD_RIGHT_ARM_GET_DISTANCE]))
+    {
+      arm_set_get_distance();
+      RCLCPP_INFO(logger_, "Set right arm get distance: %d", hw_commands[CMD_RIGHT_ARM_GET_DISTANCE]);  
+      last_hw_commands_[CMD_RIGHT_ARM_GET_DISTANCE] = hw_commands[CMD_RIGHT_ARM_GET_DISTANCE];  
+    }
   }
   else
   {
@@ -370,11 +376,11 @@ void ArduinoComms::set_arm_parameters(std::vector<double> &hw_commands)
 
 void ArduinoComms::read_arm_info(double &val_1, double &val_2, double &val_3, std::vector<double> &hw_states)
 {
-  int j1, j2, j3, p1, p2, p3, p4, p5,p6,p7;
+  int j1, j2, j3, p1, p2, p3, p4, p5,p6,p7,p8;
   //RCLCPP_INFO(logger_, "RAI %s", rightArm_ ? "r" : "l");
 
   std::string response = send_msg("s\r");
-  const int ret = std::sscanf(response.c_str(), "%d%d%d%d%d%d%d%d%d%d", &j1, &j2, &j3, &p1, &p2, &p3, &p4, &p5, &p6, &p7);
+  const int ret = std::sscanf(response.c_str(), "%d%d%d%d%d%d%d%d%d%d%d", &j1, &j2, &j3, &p1, &p2, &p3, &p4, &p5, &p6, &p7,&p8);
 
   last_j2_ = j1;
   last_j3_ = j2;
@@ -386,7 +392,7 @@ void ArduinoComms::read_arm_info(double &val_1, double &val_2, double &val_3, st
   val_3 = degrees_to_radians(j3);
 
 
-  if (rightArm_ && (ret == 10)) 
+  if (rightArm_ && (ret == 11)) 
   {
     hw_states[ST_RIGHT_ARM_MOVING] = p1;
     hw_states[ST_RIGHT_ARM_ERROR] = p2;
@@ -395,6 +401,7 @@ void ArduinoComms::read_arm_info(double &val_1, double &val_2, double &val_3, st
     hw_states[ST_RIGHT_ARM_ATTACH_MODE] = p5;
     hw_states[ST_RIGHT_ARM_VACUUM_LEVEL] = p6;
     hw_states[ST_RIGHT_ARM_ATTACH_STATUS] = p7;
+    hw_states[ST_RIGHT_ARM_DISTANCE] = p8;
 
     if (logger_initialized_)
     {
@@ -493,6 +500,18 @@ void ArduinoComms::arm_set_vacuum_on(int on_off)
 
   std::stringstream ss;
   ss << "v " << on_off;
+  send_msg(ss.str(), true);
+}
+
+void ArduinoComms::arm_set_get_distance()
+{
+  if (logger_initialized_)
+  {
+    RCLCPP_INFO(logger_, "get distance");
+  }
+
+  std::stringstream ss;
+  ss << "d";
   send_msg(ss.str(), true);
 }
 

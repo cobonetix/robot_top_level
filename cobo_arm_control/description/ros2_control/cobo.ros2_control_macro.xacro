@@ -93,6 +93,7 @@
         <command_interface name="r_c_attach_mode"/>
         <command_interface name="r_c_lock"/>
         <command_interface name="r_c_reset"/>
+        <command_interface name="r_c_distance"/>
 
         <state_interface name="r_s_moving"/>
         <state_interface name="r_s_error"/>
@@ -101,7 +102,8 @@
         <state_interface name="r_s_attach_mode"/>
         <state_interface name="r_s_attach_status"/>
         <state_interface name="r_s_vacuum_level"/>
-          
+        <state_interface name="r_s_distance"/>
+
 
       </gpio>
 

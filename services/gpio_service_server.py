@@ -44,8 +44,9 @@ class GpioServiceServer(Node):
             "v": "r_c_vacuum_on",
             "l": "r_c_lock",
             "e": "r_c_reset",
+            "d": "r_c_distance",
 
-            "d": "l_c_door_position",
+            "g": "l_c_door_position",
             "n": "l_c_lock",
             "f": "l_c_reset"
         }
@@ -63,6 +64,7 @@ class GpioServiceServer(Node):
             "r_c_vacuum_on": 0,
             "r_c_lock": 0,
             "r_c_reset": 0,
+            "r_c_distance": 0,
             
             "l_c_door_position": 0,
             "l_c_lock": 0,
@@ -99,7 +101,7 @@ class GpioServiceServer(Node):
             response.current_states = str(self.variableToValue)
             return response
 
-        if cmd == 'c' or cmd == 'r':
+        if cmd == 'c' or cmd == 'r' or cmd == 'd':
             value = random.random()
         # Update value
         var = self.cmdToVariable[cmd]
@@ -143,13 +145,14 @@ class GpioServiceServer(Node):
         )
 
         right_arm_value = InterfaceValue(
-            interface_names=["r_c_servo", "r_c_vacuum_on", "r_c_attach_mode", "r_c_lock", "r_c_reset"],
+            interface_names=["r_c_servo", "r_c_vacuum_on", "r_c_attach_mode", "r_c_lock", "r_c_reset","r_c_distance"],
             values=[
                 float(self.variableToValue["r_c_servo"]),
                 float(self.variableToValue["r_c_vacuum_on"]),
                 float(self.variableToValue["r_c_attach_mode"]),
                 float(self.variableToValue["r_c_lock"]),
-                float(self.variableToValue["r_c_reset"])
+                float(self.variableToValue["r_c_reset"]),
+                float(self.variableToValue["r_c_distance"])
             ]
         )
 
