@@ -1,0 +1,5 @@
+architecture: 'ensemble_896'  # 'efficientnet-b0'
+n_features: 896  # 1280
+image_size: 288  # 224
+ref_feats: 'data/descriptors/cloud_apr23_db200k/pre_inventory_200k_512_ratio_features.index'  # 'data/descriptors/similarity_effb0_v9/PRE_Miramar_HH_crops_features.index'
+weights: 'data/weights/similarity_cloud_apr23.onnx'

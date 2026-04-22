@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /home/bob/ros2_ws/src/robot_top_level /home/bob/misc-ros-stuff -name *port* -o -name *udev*)",
+      "Bash(find /home/bob/ros2_ws/src/robot_top_level -name *.sh)",
+      "Bash(find /home/bob -maxdepth 3 -name *.sh)"
+    ]
+  }
+}

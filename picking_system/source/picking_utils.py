@@ -220,3 +220,67 @@ def send_trajectory_request(trajectory_name: str, step_delay_sec: float = 0.0) -
     logger.info(f'Trajectory request succeeded: {result.message}')
     return True
 
+
+def get_joint_poses(timeout: float = 5.0) -> list[tuple[float, float, float, float]] | None:
+    """Read the current joint positions for both arms from /joint_states.
+
+    Spins the node until a JointState message arrives or the timeout expires.
+
+    Returns:
+        [left, right] where each element is (j1, j2, j3, j4) in radians,
+        or None if no message arrived within the timeout.
+    """
+    logger = ros_context.node.get_logger()
+
+    start = time.time()
+    while ros_context.latest_joint_state is None:
+        if (time.time() - start) > timeout:
+            logger.error('Timed out waiting for joint_states message')
+            return None
+        rclpy.spin_once(ros_context.node, timeout_sec=0.1)
+
+    msg = ros_context.latest_joint_state
+    name_to_pos = dict(zip(msg.name, msg.position))
+
+    left_names  = ('l_j1', 'l_j2', 'l_j3', 'l_j4')
+    right_names = ('r_j1', 'r_j2', 'r_j3', 'r_j4')
+
+    try:
+        left  = tuple(name_to_pos[n] for n in left_names)
+        right = tuple(name_to_pos[n] for n in right_names)
+    except KeyError as e:
+        logger.error(f'Expected joint name not found in joint_states: {e}')
+        return None
+
+    logger.info(f'Joint poses — left: {left}, right: {right}')
+    return [left, right]
+
+
+def doPick(navCamera, searchUpc):
+   
+    pickCam = "0" if navCamera else "1"
+    ros_context.node.get_logger().info(f' Picking with camera: {pickCam} for UPC: {searchUpc}')
+    
+    result = send_navigate_goal('PICK', pickCam, timeout_sec=60.0)  
+    
+    if result is None:
+        ros_context.node.get_logger().info(f'No Pick result ')
+        return None
+
+    ros_context.node.get_logger().info(f'Pick result: {result}')
+
+    bounding_boxes = result.split(";")
+    for box in bounding_boxes:
+        ros_context.node.get_logger().info(f'Bounding box: {box}')
+
+        upc, x1, y1, x2, y2 = box.split(",")
+        ros_context.node.get_logger().info(f'UPC: {upc}, x1: {x1}, y1: {y1}, x2: {x2}, y2: {y2}')
+
+        if upc == searchUpc:
+            ros_context.node.get_logger().info(f'Found target UPC {searchUpc} in bounding box: {box}')
+            return [x1, y1, x2, y2]  # Return the bounding box coordinates for the matching UPC
+   
+    ros_context.node.get_logger().info(f'Target UPC {searchUpc} not found in any bounding box')
+    return None  # Return None if the target UPC was not found in any bounding box
+
+

@@ -48,8 +48,8 @@ void Odometry::init(const rclcpp::Time & time)
 
 bool Odometry::update(double left_pos, double right_pos, const rclcpp::Time & time)
 {
-std::cout << "Updating odometry with left pos " << left_pos << " and right pos " << right_pos
-            << " at time " << time.seconds() << std::endl;
+//std::cout << "Updating odometry with left pos " << left_pos << " and right pos " << right_pos
+//            << " at time " << time.seconds() << std::endl;
             
   // We cannot estimate the speed with very small time intervals:
   const double dt = time.seconds() - timestamp_.seconds();
@@ -151,7 +151,7 @@ void Odometry::integrateRungeKutta2(double linear, double angular)
 
 void Odometry::integrateExact(double linear, double angular)
 {
-  std::cout << "Integrating odometry with linear " << linear << " and angular " << angular << std::endl;
+  //std::cout << "Integrating odometry with linear " << linear << " and angular " << angular << std::endl;
   if (fabs(angular) < 1e-6)
  
   {

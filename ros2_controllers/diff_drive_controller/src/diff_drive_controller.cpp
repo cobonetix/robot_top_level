@@ -217,12 +217,12 @@ controller_interface::return_type DiffDriveController::update(
       odometry_message.header.stamp = time;
       odometry_message.pose.pose.position.x = odometry_.getX();
       odometry_message.pose.pose.position.y = odometry_.getY();
-      RCLCPP_INFO(logger, "pos x %f ", odometry_message.pose.pose.position.x);
+      //RCLCPP_INFO(logger, "pos x %f ", odometry_message.pose.pose.position.x);
       odometry_message.pose.pose.orientation.x = orientation.x();
       odometry_message.pose.pose.orientation.y = orientation.y();
       odometry_message.pose.pose.orientation.z = orientation.z();
       odometry_message.pose.pose.orientation.w = orientation.w();
-      RCLCPP_INFO(logger, "odom z %f odom w %f", odometry_message.pose.pose.orientation.z, odometry_message.pose.pose.orientation.w);
+      //RCLCPP_INFO(logger, "odom z %f odom w %f", odometry_message.pose.pose.orientation.z, odometry_message.pose.pose.orientation.w);
       odometry_message.twist.twist.linear.x = odometry_.getLinear();
       odometry_message.twist.twist.angular.z = odometry_.getAngular();
       realtime_odometry_publisher_->unlockAndPublish();

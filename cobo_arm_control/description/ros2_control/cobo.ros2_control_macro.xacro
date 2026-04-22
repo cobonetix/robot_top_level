@@ -59,9 +59,9 @@
 
       <hardware>
         <plugin>cobo_arm_control/RobotSystem</plugin>
-           <param name="right_arm_port">/dev/tty_right_arm</param>
-           <param name="tower_port">/dev/tty_tower</param>
-           <param name="left_arm_port">/dev/tty_left_arm</param>
+           <param name="right_arm_port">/dev/right_arm</param>
+           <param name="tower_port">/dev/arduino_tower</param>
+           <param name="left_arm_port">/dev/left_arm</param>
            <param name="baud_rate">38400</param> 
            <param name="initial_rotation">1.56</param> 
            <param name="initial_z">0.8</param> 

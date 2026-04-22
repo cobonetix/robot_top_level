@@ -10,9 +10,9 @@ import sys
 
 import ros_context
 from arm_init_calibrate import run_init_sequence
-from process_orders import do_pick_test, process_all_orders,test_move
+from process_orders import do_pick_test, process_all_orders
 
-processOrders = False
+processOrders = True
 pickUpc = "000000000000" # UPC of item to pick for test mode, not used if processOrders is True
 
 
@@ -25,21 +25,21 @@ def main():
 
     ros_context.init()
 
-    try:
-        success = run_init_sequence()
-        if not success:
-            ros_context.node.get_logger().error('Initialization sequence failed')
-            return 1
+    if processOrders:
+        try:
+            success = run_init_sequence()
+            if not success:
+                ros_context.node.get_logger().error('Initialization sequence failed')
+                return 1
 
-        if processOrders:
-            process_all_orders(orders_file)
-        else:
-            test_move()
-
-    except KeyboardInterrupt:
-        ros_context.node.get_logger().info('Interrupted by user')
-    finally:
-        ros_context.shutdown()
+            if processOrders:
+                process_all_orders(orders_file)
+        except KeyboardInterrupt:
+            ros_context.node.get_logger().info('Interrupted by user')
+    else:
+        # test_move()
+        test_shelf_analysis(pickUpc)
+    ros_context.shutdown()
 
     return 0
 

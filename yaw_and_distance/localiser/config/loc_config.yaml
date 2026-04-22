@@ -1,0 +1,11 @@
+weights: 'data/weights/yolov5XL_MD3_grc300_192.onnx'
+input_size: 192
+iou_thres:
+  - 0.45  # product
+  - 0.45  # label
+  - 0.99  # shelf
+loc_conf:
+  - 0.45
+  - 0.45
+  - 0.4
+
